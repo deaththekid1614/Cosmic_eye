@@ -3,12 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
 from app.config import settings
+from app.utils.errors import CosmicEyeError
+from app.utils.handlers import cosmic_eye_exception_handler
 
 app = FastAPI(
-    title="Cosic Eye API",
+    title="Cosmic Eye API",
     version=settings.service_version,
     description="Public exploration API for NASA SPHEREx observations.",
 )
+
+# Register the exception handler
+app.add_exception_handler(CosmicEyeError, cosmic_eye_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,7 +24,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
-
 
 @app.get("/", include_in_schema=False)
 def root() -> dict:

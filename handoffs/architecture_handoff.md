@@ -1,6 +1,6 @@
-# Cosic Eye — Architecture & Development Handoff
+# Cosmic Eye — Architecture & Development Handoff
 
-> **Project:** Cosic Eye  
+> **Project:** Cosmic Eye  
 > **Challenge:** 2026 NASA Space Apps Challenge — “Planet X and SPHEREx”  
 > **Document type:** Product definition, technical architecture, implementation plan, and team handoff  
 > **Status:** Proposed architecture — validate data access and scientific assumptions during Stage 0  
@@ -11,13 +11,13 @@
 
 ## 1. Executive summary
 
-**Cosic Eye** is a public-facing web application that makes NASA SPHEREx observations easier for non-experts to explore. Users should be able to discover a region of the sky, view available observations, compare compatible images, inspect possible changes, and learn what the data does—and does not—tell them.
+**Cosmic Eye** is a public-facing web application that makes NASA SPHEREx observations easier for non-experts to explore. Users should be able to discover a region of the sky, view available observations, compare compatible images, inspect possible changes, and learn what the data does—and does not—tell them.
 
 The app must be designed for ordinary people first. Astronomy terms should be explained in plain language, the first useful action should be obvious, and advanced details should be available when users want them without overwhelming beginners.
 
 ### One-sentence pitch
 
-**Cosic Eye turns real SPHEREx observations into an approachable, interactive sky explorer where anyone can compare what a region looks like and investigate what may have changed.**
+**Cosmic Eye turns real SPHEREx observations into an approachable, interactive sky explorer where anyone can compare what a region looks like and investigate what may have changed.**
 
 ### Product principles
 
@@ -101,7 +101,7 @@ Develop a responsive, accessible web app that helps the public explore available
 ### The 10-second rule
 
 A first-time user should understand within about ten seconds:
-1. What Cosic Eye does.
+1. What Cosmic Eye does.
 2. How to start exploring.
 3. That the image is an observation of the sky.
 4. Where to find a simple explanation.
@@ -343,7 +343,7 @@ Use a Python virtual environment and a locked or reproducible dependency file. P
 ## 8. Proposed repository structure
 
 ```text
-cosic-eye/
+cosmic-eye/
 ├── README.md
 ├── architecture_handoff.md
 ├── LICENSE
@@ -445,7 +445,7 @@ Notes:
 - This is the intended structure, not a claim that all files already exist.
 - Avoid committing large FITS files or private data. Keep any small test fixture properly licensed, documented, and clearly separated from real archive content.
 - `dev.sh` is a convenience script, not a requirement for end users. Provide equivalent manual commands in the README so the project is not shell-specific.
-- Keep the spelling **Cosic Eye** consistent in titles, package metadata, documentation, and UI.
+- Keep the spelling **Cosmic Eye** consistent in titles, package metadata, documentation, and UI.
 
 ---
 
@@ -462,7 +462,7 @@ Example:
 ```json
 {
   "status": "ok",
-  "service": "cosic-eye-api"
+  "service": "cosmic-eye-api"
 }
 ```
 
@@ -592,7 +592,7 @@ The user should be able to open a “Source & details” panel and see:
 - Observation identifier.
 - Date and wavelength/band metadata from the product.
 - Whether the displayed image is a processed preview.
-- Any analysis performed by Cosic Eye.
+- Any analysis performed by Cosmic Eye.
 - Warnings about comparability or uncertainty.
 
 Do not invent missing metadata. If a field is unavailable, omit it or label it “Not provided by the archive,” rather than filling it with a plausible guess.
@@ -1134,20 +1134,20 @@ A strong submission should demonstrate:
 7. **Technical clarity:** modular architecture, documented API, tests, and reproducible setup.
 8. **Presentation:** a short demo tells a clear story from search to observation to comparison to interpretation.
 
-Do not claim official NASA endorsement. Describe Cosic Eye as a team-built prototype for the NASA Space Apps Challenge.
+Do not claim official NASA endorsement. Describe Cosmic Eye as a team-built prototype for the NASA Space Apps Challenge.
 
 ---
 
 ## 23. Demo script outline
 
-1. **Opening:** “Space telescopes collect enormous amounts of data. Cosic Eye helps ordinary people explore SPHEREx observations without needing specialist software.”
+1. **Opening:** “Space telescopes collect enormous amounts of data. Cosmic Eye helps ordinary people explore SPHEREx observations without needing specialist software.”
 2. **Search:** Show how to select a region or use a guided example.
 3. **Explore:** Open a real observation and explain the image in plain language.
 4. **Understand:** Open the details panel and show its official source, date, and available wavelength metadata.
 5. **Compare:** Select another suitable observation and move between the two.
 6. **Investigate:** Show a difference view or candidate region if scientifically valid.
 7. **Explain:** State why the difference may be interesting and what uncertainty remains.
-8. **Close:** “Cosic Eye does not declare discoveries; it makes it easier for people to explore real data and decide what deserves closer investigation.”
+8. **Close:** “Cosmic Eye does not declare discoveries; it makes it easier for people to explore real data and decide what deserves closer investigation.”
 
 If real compatible observations are unavailable during the event, say so plainly. Demonstrate the real-data viewer and explain that the comparison pipeline is being tested with clearly labelled fixtures rather than pretending synthetic results came from NASA.
 
@@ -1155,7 +1155,7 @@ If real compatible observations are unavailable during the event, say so plainly
 
 ## 24. Project decisions to keep stable
 
-- Project name: **Cosic Eye** (use this exact spelling unless the team explicitly changes it).
+- Project name: **Cosmic Eye** (use this exact spelling unless the team explicitly changes it).
 - Product type: public, responsive web application.
 - Audience: non-experts first, with optional advanced details.
 - Data source: official SPHEREx data available through IRSA.
@@ -1170,7 +1170,7 @@ If real compatible observations are unavailable during the event, say so plainly
 
 ## 25. First 10 actions after opening this handoff
 
-1. Create the `cosic-eye` repository.
+1. Create the `cosmic-eye` repository.
 2. Add this file as `architecture_handoff.md`.
 3. Read the official SPHEREx data-access guide and confirm the current SIA2/query method.
 4. Retrieve one small real observation product and record its exact source and metadata.
@@ -1181,7 +1181,7 @@ If real compatible observations are unavailable during the event, say so plainly
 9. Build the beginner-friendly observation viewer.
 10. Only after this works, implement comparison and difference analysis.
 
-**Do not start by building the full dashboard. Start by proving that one real SPHEREx observation can travel from the official archive into Cosic Eye and appear correctly in the browser.** That single end-to-end milestone validates the project's foundation.
+**Do not start by building the full dashboard. Start by proving that one real SPHEREx observation can travel from the official archive into Cosmic Eye and appear correctly in the browser.** That single end-to-end milestone validates the project's foundation.
 
 ---
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    service_name: str = "cosic-eye-api"
+    service_name: str = "cosmic-eye-api"
     service_version: str = "0.1.0"
 
     # Data source
@@ -24,6 +25,9 @@ class Settings(BaseSettings):
     max_results: int = 50
     max_download_bytes: int = 50_000_000
     request_timeout_seconds: float = 30.0
+
+    # Caching
+    preview_cache_dir: Path = Path("tmp/previews")
 
 
 settings = Settings()

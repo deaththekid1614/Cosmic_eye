@@ -1,7 +1,7 @@
 [project]
-name = "cosic-eye-backend"
+name = "cosmic-eye-backend"
 version = "0.1.0"
-description = "Cosic Eye backend API for exploring NASA SPHEREx observations."
+description = "Cosmic Eye backend API for exploring NASA SPHEREx observations."
 requires-python = ">=3.11,<3.12"
 
 [tool.ruff]
