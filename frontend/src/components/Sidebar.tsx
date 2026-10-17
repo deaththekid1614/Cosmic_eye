@@ -31,7 +31,7 @@ export default function Sidebar() {
         <div className="telescope-img">🔭</div>
         <h3>NASA SPHEREx</h3>
         <p>Mapping the entire sky in 102 infrared bands to explore the history of the universe.</p>
-        <button className="secondary-btn full-width">Learn More</button>
+        <button className="secondary-btn">Learn More</button>
       </div>
     </aside>
   );

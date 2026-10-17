@@ -1,7 +1,12 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { searchObservations } from '../api/observations';
-import { Observation } from '../types/observation';
+import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
+import ObservationViewer from '../components/ObservationViewer';
+import { useCompare } from '../context/CompareContext';
+import { ArrowRight, X } from 'lucide-react';
 
 export default function ExplorePage() {
   const [ra, setRa] = useState('304.69');
@@ -9,17 +14,18 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Observation[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedObs, setSelectedObs] = useState<Observation | null>(null);
+  const { selectedObs: compareList, clearSelection } = useCompare();
+  const navigate = useNavigate();
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setHasSearched(true);
-    setResults([]); // Clear old results immediately
+    setResults([]);
+    clearSelection();
 
     try {
-      // Force new fetch
       const data = await searchObservations(Number(ra), Number(dec), 0.01);
       setResults(data.items);
     } catch (err: any) {
@@ -30,7 +36,7 @@ export default function ExplorePage() {
   };
 
   return (
-    <section>
+    <section style={{ paddingBottom: compareList.length > 0 ? '80px' : '0' }}>
       <div className="explore-header">
         <h1>Explore NASA SPHEREx</h1>
         <p>Search the IRSA archive for real infrared observations.</p>
@@ -54,15 +60,44 @@ export default function ExplorePage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      {!loading && hasSearched && results.length === 0 && !error && (
-        <p>No observations found at this position. Try a different coordinate.</p>
-      )}
-
       <div className="results-grid">
         {results.map((obs) => (
-          <ObservationCard key={`${obs.id}-${obs.band}`} observation={obs} />
+          <ObservationCard 
+            key={`${obs.id}-${obs.band}`} 
+            observation={obs} 
+            onClick={() => setSelectedObs(obs)} 
+          />
         ))}
       </div>
+
+      {selectedObs && (
+        <ObservationViewer 
+          observation={selectedObs} 
+          onClose={() => setSelectedObs(null)} 
+        />
+      )}
+
+      {compareList.length > 0 && (
+        <div className="floating-compare-bar">
+          <div className="compare-info">
+            <span>{compareList.length} observation{compareList.length > 1 ? 's' : ''} selected</span>
+            {compareList.length === 1 && <span className="text-muted">Select one more to compare</span>}
+          </div>
+          <div className="compare-actions">
+            <button className="secondary-btn" onClick={clearSelection}>
+              <X size={16} /> Clear
+            </button>
+            <button 
+              className="primary-action glow-btn" 
+              disabled={compareList.length < 2}
+              onClick={() => navigate('/compare')}
+              style={{ marginTop: 0 }}
+            >
+              Go to Time Machine <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

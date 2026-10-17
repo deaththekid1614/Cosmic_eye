@@ -33,7 +33,7 @@ export default function AppHeader() {
         ))}
       </nav>
       <div className="top-nav-right">
-        <span className="nasa-text">Powered by<br/><strong>NASA SPHEREx</strong></span>
+        <span className="nasa-text">Powered by<br/><strong style={{ color: 'var(--text-main)' }}>NASA SPHEREx</strong></span>
       </div>
     </header>
   );

@@ -1,20 +1,37 @@
-import { Observation } from '../types/observation';
+import type { MouseEvent } from 'react';
+import type { Observation } from '../types/observation';
+import { useCompare } from '../context/CompareContext';
+import { CheckCircle, Circle } from 'lucide-react';
 
 type Props = {
   observation: Observation;
+  onClick: () => void;
 };
 
-export default function ObservationCard({ observation }: Props) {
+export default function ObservationCard({ observation, onClick }: Props) {
+  const { selectedObs, toggleObservation } = useCompare();
+  
+  const isSelected = selectedObs.some(
+    (o) => o.id === observation.id && o.band === observation.band
+  );
+
   const date = new Date(observation.observed_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
 
-  // Construct the backend preview URL
   const previewUrl = `http://localhost:8000/api/v1/observations/preview?url=${encodeURIComponent(observation.source_url)}`;
 
+  const handleCompareClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    toggleObservation(observation);
+  };
+
   return (
-    <div className="observation-card">
-      {/* The new image section */}
+    <div 
+      className={`observation-card ${isSelected ? 'selected' : ''}`} 
+      onClick={onClick} 
+      style={{ cursor: 'pointer' }}
+    >
       <div className="obs-image-container">
         <img 
           src={previewUrl} 
@@ -22,6 +39,17 @@ export default function ObservationCard({ observation }: Props) {
           loading="lazy" 
           className="obs-image"
         />
+        
+        <button 
+          className={`compare-toggle-btn ${isSelected ? 'active' : ''}`}
+          onClick={handleCompareClick}
+          aria-label="Select for comparison"
+          title="Select for Time Machine"
+        >
+          {isSelected ? <CheckCircle size={20} /> : <Circle size={20} />}
+          <span>Compare</span>
+        </button>
+
         <div className="obs-badge">{observation.band}</div>
       </div>
 
@@ -34,14 +62,7 @@ export default function ObservationCard({ observation }: Props) {
         <p className="obs-position">RA {observation.ra.toFixed(2)}°, Dec {observation.dec.toFixed(2)}°</p>
 
         <div className="obs-footer">
-          <a 
-            href={observation.source_url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="source-link"
-          >
-            View Raw Data on NASA ↗
-          </a>
+          <span className="source-link">Click to view full image →</span>
         </div>
       </div>
     </div>
