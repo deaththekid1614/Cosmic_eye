@@ -1,29 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { searchObservations } from '../api/observations';
 import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
 import ObservationViewer from '../components/ObservationViewer';
-import { useCompare } from '../context/CompareContext';
-import { ArrowRight, X } from 'lucide-react';
 
 export default function ExplorePage() {
+  const location = useLocation();
+  
+  // Default coordinates
   const [ra, setRa] = useState('304.69');
   const [dec, setDec] = useState('42.44');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Observation[]>([]);
   const [selectedObs, setSelectedObs] = useState<Observation | null>(null);
-  const { selectedObs: compareList, clearSelection } = useCompare();
-  const navigate = useNavigate();
+
+  // If the user came from the Home page, pre-fill the coordinates!
+  useEffect(() => {
+    if (location.state?.ra && location.state?.dec) {
+      setRa(location.state.ra);
+      setDec(location.state.dec);
+    }
+  }, [location.state]);
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setResults([]);
-    clearSelection();
 
     try {
       const data = await searchObservations(Number(ra), Number(dec), 0.01);
@@ -36,7 +42,7 @@ export default function ExplorePage() {
   };
 
   return (
-    <section style={{ paddingBottom: compareList.length > 0 ? '80px' : '0' }}>
+    <section>
       <div className="explore-header">
         <h1>Explore NASA SPHEREx</h1>
         <p>Search the IRSA archive for real infrared observations.</p>
@@ -75,28 +81,6 @@ export default function ExplorePage() {
           observation={selectedObs} 
           onClose={() => setSelectedObs(null)} 
         />
-      )}
-
-      {compareList.length > 0 && (
-        <div className="floating-compare-bar">
-          <div className="compare-info">
-            <span>{compareList.length} observation{compareList.length > 1 ? 's' : ''} selected</span>
-            {compareList.length === 1 && <span className="text-muted">Select one more to compare</span>}
-          </div>
-          <div className="compare-actions">
-            <button className="secondary-btn" onClick={clearSelection}>
-              <X size={16} /> Clear
-            </button>
-            <button 
-              className="primary-action glow-btn" 
-              disabled={compareList.length < 2}
-              onClick={() => navigate('/compare')}
-              style={{ marginTop: 0 }}
-            >
-              Go to Time Machine <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
       )}
     </section>
   );

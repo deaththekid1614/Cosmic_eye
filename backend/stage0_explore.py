@@ -1,6 +1,6 @@
 """
 Stage 0 exploration: understand the 415-row SIA2 result.
-Run from ~/IDE/cosic-eye/backend with venv active: python stage0_explore.py
+Run from ~/IDE/cosmic-eye/backend with venv active: python stage0_explore.py
 """
 from collections import Counter
 

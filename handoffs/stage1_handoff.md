@@ -12,7 +12,7 @@ Full repository skeleton plus a working frontend and backend. A clean clone
 can be brought up with documented commands and reach `http://localhost:5173`
 (frontend) and `http://localhost:8000/api/v1/health` (backend).
 
-**Project name updated:** `Cosic Eye` → `Cosmic Eye` across all code, docs, and configs.
+**Project name updated:** `Cosmic Eye` → `Cosmic Eye` across all code, docs, and configs.
 **UI Layout:** "World monitor" aesthetic implemented with a fixed left sidebar navigation.
 
 ---

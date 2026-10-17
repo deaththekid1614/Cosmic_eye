@@ -1,7 +1,7 @@
 """
 Stage 0: Data feasibility script.
 Queries IRSA SIA2 for SPHEREx data, downloads one MEF, inspects it with Astropy.
-Run from: ~/IDE/cosic-eye/backend
+Run from: ~/IDE/cosmic-eye/backend
 Command: python stage0_inspect.py
 """
 import json

@@ -4,6 +4,7 @@ from app.schemas.observation import ObservationListResponse
 from app.services.archive_service import fetch_normalized_observations
 from app.services.preview_service import generate_preview
 from app.utils.limits import validate_coordinates, validate_pagination
+from app.config import settings
 
 router = APIRouter()
 
@@ -25,13 +26,25 @@ def get_observations(
     )
 
 @router.get("/preview")
-def get_preview(url: str = Query(..., description="The NASA access_url")):
-    """Generates a JPEG preview from a FITS URL."""
+def get_preview(url: str = Query(..., description="The NASA access_url or cached:// URL")):
+    """Generates a JPEG preview from a FITS URL or serves a cached difference image."""
+    
+    # Check if this is a cached file from our difference service
+    if url.startswith("cached://"):
+        filename = url.replace("cached://", "")
+        file_path = settings.preview_cache_dir / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Cached image not found.")
+            
+        with open(file_path, "rb") as f:
+            return Response(content=f.read(), media_type="image/jpeg")
+
+    # Otherwise, process a raw NASA FITS file
     if not url.startswith("https://irsa.ipac.caltech.edu"):
         raise HTTPException(status_code=400, detail="Invalid NASA URL")
         
     try:
-        # Note: In production, we would cache this. For now, we generate it live.
         image_bytes = generate_preview(url)
         return Response(content=image_bytes, media_type="image/jpeg")
     except Exception as e:

@@ -1,11 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Clock, Sparkles, Activity, BookOpen } from 'lucide-react';
+import { Home, Search, Activity, BookOpen } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/explore', label: 'Explore', icon: Search },
-  { to: '/compare', label: 'Time Machine', icon: Clock },
-  { to: '/changes', label: 'Find Changes', icon: Sparkles },
   { to: '/wavelengths', label: 'Wavelengths', icon: Activity },
   { to: '/learn', label: 'Learn', icon: BookOpen },
 ];
@@ -17,7 +15,7 @@ export default function AppHeader() {
         <div className="logo-circle">
           <div className="orbit"></div>
         </div>
-        <span>Cosic Eye</span>
+        <span>Cosmic Eye</span>
       </div>
       <nav className="top-nav-links">
         {navItems.map((item) => (
