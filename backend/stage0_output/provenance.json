@@ -1,0 +1,99 @@
+{
+  "obs_id": "2025W43_1A_0516_1",
+  "obs_collection": "spherex_qr2",
+  "access_url": "https://irsa.ipac.caltech.edu/ibe/data/spherex/qr2/level2/2025W43_1A/l2b-v20-2025-299/5/level2_2025W43_1A_0516_1D5_spx_l2b-v20-2025-299.fits",
+  "download_date_utc": "2026-10-17T12:53:50.126819+00:00",
+  "query": {
+    "ra_deg": 304.693508808,
+    "dec_deg": 42.4436872991,
+    "radius_arcsec": 1.0,
+    "collection": "spherex_qr2"
+  },
+  "fits_info": {
+    "hdu_count": 7,
+    "hdus": [
+      {
+        "index": 0,
+        "name": "PRIMARY",
+        "shape": null,
+        "dtype": null,
+        "has_header": true
+      },
+      {
+        "index": 1,
+        "name": "IMAGE",
+        "shape": [
+          2040,
+          2040
+        ],
+        "dtype": ">f4",
+        "has_header": true
+      },
+      {
+        "index": 2,
+        "name": "FLAGS",
+        "shape": [
+          2040,
+          2040
+        ],
+        "dtype": ">i4",
+        "has_header": true
+      },
+      {
+        "index": 3,
+        "name": "VARIANCE",
+        "shape": [
+          2040,
+          2040
+        ],
+        "dtype": ">f4",
+        "has_header": true
+      },
+      {
+        "index": 4,
+        "name": "ZODI",
+        "shape": [
+          2040,
+          2040
+        ],
+        "dtype": ">f4",
+        "has_header": true
+      },
+      {
+        "index": 5,
+        "name": "PSF",
+        "shape": [
+          121,
+          101,
+          101
+        ],
+        "dtype": ">f4",
+        "has_header": true
+      },
+      {
+        "index": 6,
+        "name": "WCS-WAVE",
+        "shape": [
+          1
+        ],
+        "dtype": "(numpy.record, [('X', '>i4', (11,)), ('Y', '>i4', (11,)), ('VALUES', '>f4', (11, 11, 2))])",
+        "has_header": true
+      }
+    ]
+  },
+  "wcs": {
+    "hdu_index": 1,
+    "crpix": [
+      1020.5,
+      1020.5
+    ],
+    "crval": [
+      302.849832536,
+      43.5083401498
+    ],
+    "ctype": [
+      "RA---TAN-SIP",
+      "DEC--TAN-SIP"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+Stage 0 Feasibility Summary
+===========================
+obs_id:       2025W43_1A_0516_1
+collection:   spherex_qr2
+access_url:   https://irsa.ipac.caltech.edu/ibe/data/spherex/qr2/level2/2025W43_1A/l2b-v20-2025-299/5/level2_2025W43_1A_0516_1D5_spx_l2b-v20-2025-299.fits
+coordinate:   RA=304.693508808, Dec=42.4436872991
+retrieved:    2026-10-17T12:53:50.126819+00:00
+hdu_count:    7
+wcs_crval:    [np.float64(302.849832536), np.float64(43.5083401498)]
+wcs_ctype:    ['RA---TAN-SIP', 'DEC--TAN-SIP']
