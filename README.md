@@ -1,14 +1,24 @@
-# Cosmic Eye
+# 🌌 Cosmic Eye
 
-### Explore the infrared universe with real SPHEREx archive data.
+<div align="center">
 
-Cosmic Eye is an interactive astronomy explorer for public NASA SPHEREx observations. Find a nebula or galaxy by name, search any sky coordinate, browse known regions, and inspect infrared image products across available bands—all from one place.
+### 🔭 Explore the infrared universe with NASA SPHEREx archive data
 
-**Search the sky** 🔭 &nbsp; **Browse real observations** 🛰️ &nbsp; **Explore the 3D map** 🌌
+Search the sky, browse real observations, and explore a 3D map of cataloged targets.
 
-Built for the **2026 NASA Space Apps Challenge**, Cosmic Eye brings astronomy archive data into a visual, approachable experience. It is an independent prototype, not an official NASA product, and it does not detect or confirm Planet X or any other discovery.
+<img alt="Python 3.11" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
+<img alt="React 18" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black">
+<img alt="FastAPI" src="https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white">
+<img alt="Three.js" src="https://img.shields.io/badge/3D-Three.js-000000?logo=threedotjs&logoColor=white">
+<img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 
-## Contents
+</div>
+
+Cosmic Eye is an interactive astronomy explorer for public NASA SPHEREx observations. Search for a nebula or galaxy, explore archive coverage, and inspect infrared products across available wavelength bands—all in one place.
+
+> 🚀 Built for the **2026 NASA Space Apps Challenge**. Cosmic Eye is an independent prototype, not an official NASA product, and it does not detect or confirm Planet X or any other discovery.
+
+## 🧭 Contents
 
 - [Features](#features)
 - [End-to-end architecture](#end-to-end-architecture)
@@ -20,7 +30,8 @@ Built for the **2026 NASA Space Apps Challenge**, Cosmic Eye brings astronomy ar
 - [Project structure](#project-structure)
 - [License and attribution](#license-and-attribution)
 
-## Features
+<a id="features"></a>
+## ✨ Features
 
 Explore the app from a target, a coordinate, or a sky-wide view:
 
@@ -35,43 +46,45 @@ Explore the app from a target, a coordinate, or a sky-wide view:
 | 🎨 Color Lab (`/rgb`) | Changes the display palette or wavelength band for an infrared image; includes a queue of scans in the region. | Displays one band image at a time. Palettes: Inferno, Viridis, Plasma, Cividis, and Magma. |
 | 📖 Learn (`/learn`) | Explains infrared and how wavelength/palette choices affect display. | Includes an illustrative signal graphic, not observed SPHEREx data. |
 
-## End-to-end architecture
+<a id="end-to-end-architecture"></a>
+## 🏗️ End-to-end architecture
 
 Follow the data from a user's search to the image on screen. The backend handles three steps: resolve a target name, find matching archive products, and create a preview from the selected FITS file.
 
-```text
-+------------------------------------------------------------------+
-| 1. BROWSER                                                       |
-| User -> React pages -> typed API client                          |
-+-------------------------------+----------------------------------+
-                                | HTTP requests to /api/v1
-                                v
-+------------------------------------------------------------------+
-| 2. FASTAPI BACKEND                                               |
-| Validates inputs and dispatches each request to the right flow.  |
-|                                                                  |
-| NAME SEARCH                                                      |
-| Local aliases or SIMBAD -> target coordinates returned to UI     |
-|                                                                  |
-| ARCHIVE SEARCH                                                   |
-| Coordinates -> archive service -> Astroquery SIA2 -> IRSA QR2    |
-| IRSA image records -> normalized observation JSON                |
-|                                                                  |
-| IMAGE PREVIEW                                                    |
-| IRSA product URL -> download FITS -> normalize and palette       |
-| -> local JPEG cache                                              |
-+-------------------------------+----------------------------------+
-                                | JSON results and JPEG previews
-                                v
-+------------------------------------------------------------------+
-| 3. BROWSER RESULT                                                |
-| React renders images, field-center metadata, details, and links.  |
-+------------------------------------------------------------------+
+```mermaid
+flowchart LR
+    U[User] --> UI[React and TypeScript UI]
+    UI -->|HTTP /api/v1| API[FastAPI]
+
+    subgraph Resolve[Name resolution]
+        API --> ALIAS[Local aliases]
+        API --> SIMBAD[SIMBAD via Astroquery]
+        ALIAS --> COORDS[Target coordinates]
+        SIMBAD --> COORDS
+    end
+
+    subgraph Search[Archive search]
+        COORDS --> QUERY[Archive service]
+        API -->|Coordinate search| QUERY
+        QUERY --> SIA[Astroquery SIA2]
+        SIA --> IRSA[NASA/IPAC IRSA · SPHEREx QR2]
+        IRSA --> RECORDS[Normalized observation records]
+    end
+
+    subgraph Preview[Image preview]
+        RECORDS --> PRODUCT[IRSA FITS product]
+        PRODUCT --> PROCESS[Astropy · NumPy · Matplotlib]
+        PROCESS --> CACHE[Cached JPEG preview]
+    end
+
+    RECORDS --> UI
+    CACHE --> UI
+    UI --> VIEW[Images · metadata · archive links]
 ```
 
 **Typical user flow:** AI Search resolves a name to coordinates, then searches the archive. Manual Search starts with coordinates and skips name resolution. Browse queries its fixed sample field; Popular Regions and Sky Map supply coordinates from a selected target. When an observation viewer needs an image, the browser requests a preview; the backend returns a cached JPEG or builds one from the FITS product. Color Lab also requests available wavelength groups for its band selector and scan queue.
 
-## AI and machine learning
+## 🧠 AI and machine learning
 
 The app’s “AI Search” label describes an astronomical name lookup. The current user-facing product does not run a generative AI model or a trained machine-learning model.
 
@@ -84,7 +97,7 @@ The app’s “AI Search” label describes an astronomical name lookup. The cur
 
 Accordingly, there is no trained model accuracy score to report. The M74 cross-check below validates one name-resolution and archive-coverage example; it is not a model evaluation.
 
-### Component responsibilities
+### 🧩 Component responsibilities
 
 | Component | Responsibility |
 | --- | --- |
@@ -99,7 +112,8 @@ Accordingly, there is no trained model accuracy score to report. The M74 cross-c
 
 Single-band previews are display renderings, not the underlying science arrays. Palette colors encode signal and do not show true visible-light colors. The optional backend RGB-preview endpoint combines three files for illustration; it does not perform WCS registration/reprojection or photometric color calibration.
 
-### Science and data limits
+<a id="science-and-data-limits"></a>
+### 🔬 Science and data limits
 
 - A search result’s RA and Dec are the image tile’s center. A tile can cover the requested target even when its center is some distance away. The preview can show a wide field rather than a close-up of the target.
 - IRSA results and available bands depend on the archive release and sky position. An empty result means no matching product was returned for that query; it does not mean there are no astronomical objects there.
@@ -108,7 +122,7 @@ Single-band previews are display renderings, not the underlying science arrays. 
 - Observation wavelength labels describe the band. They do not identify the contents of an image. Do not interpret UI labels as scientific classifications or detections.
 - Archive files and externally hosted imagery retain their own source terms and attribution requirements. The repository’s MIT license does not relicense them.
 
-## Cross-check: M74 (Phantom Galaxy)
+## ✅ Cross-check: M74 (Phantom Galaxy)
 
 On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD and a live positional query of the SPHEREx QR2 archive:
 
@@ -123,7 +137,8 @@ On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD a
 
 **What it does not validate:** this single example does not verify every catalog entry, every archive result, the photometric calibration of an image, or a scientific detection. The preview remains a wide-field infrared tile, not a close-up of the galaxy.
 
-## Technology
+<a id="technology"></a>
+## 🛠️ Technology
 
 | Area | Technologies | Role in this project |
 | --- | --- | --- |
@@ -137,11 +152,12 @@ On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD a
 | Scientific Python dependencies | SciPy, scikit-image, scikit-learn, XGBoost | Declared in the backend environment; they are not currently used for active model inference in the app. |
 | Quality checks | Ruff, pytest, pytest-asyncio, TypeScript compiler (`tsc`) | Python linting/tests and frontend type checking. |
 
-### AI and ML status
+### 🤖 AI and ML status
 
 Cosmic Eye currently has no trained model, neural network, or large language model in its request flow. The feature named **AI Search** looks up known aliases locally and uses SIMBAD through Astroquery to resolve other object names to catalog coordinates. Wavelength descriptions are assigned by fixed thresholds in `backend/app/services/ml_service.py`. The palette controls transform FITS pixels for display; they do not classify the image. Although scikit-learn and XGBoost are listed as dependencies, active application code does not load a trained model or call their inference APIs.
 
-## Run locally
+<a id="run-locally"></a>
+## 🚀 Run locally
 
 You need Python 3.11, Node.js/npm, Git, and internet access to reach IRSA and SIMBAD. From the repository root, create and start the backend:
 
@@ -166,13 +182,15 @@ Open the local URL printed by Vite (normally `http://localhost:5173`). The Vite 
 
 The API health check is at `http://localhost:8000/api/v1/health`; interactive API documentation is at `http://localhost:8000/docs`.
 
-## Configuration
+<a id="configuration"></a>
+## ⚙️ Configuration
 
 The backend can read an optional `backend/.env` file. `.env.example` lists the declared environment settings. `FRONTEND_ORIGIN` controls the CORS allowlist; the preview cache defaults to `backend/tmp/previews/`. Some other example settings are declared in configuration but are not currently used to control every upstream request or cache behavior. The app does not require an IRSA API key.
 
 The frontend accepts `VITE_API_BASE_URL` for an API base URL; when unset it uses relative `/api` URLs, which work with the local Vite proxy. Local preview generation requires the backend to be reachable.
 
-## API
+<a id="api"></a>
+## 🔌 API
 
 All routes are under `/api/v1`:
 
@@ -189,7 +207,8 @@ All routes are under `/api/v1`:
 
 Coordinates and search bounds are validated by the backend. The live OpenAPI documentation at `/docs` is the reference for request and response schemas.
 
-## Project structure
+<a id="project-structure"></a>
+## 🗂️ Project structure
 
 ```text
 cosmic-eye/
@@ -237,10 +256,11 @@ cosmic-eye/
 
 Generated files and local environments—including `frontend/node_modules/`, `frontend/dist/`, `backend/.venv/`, and `backend/tmp/previews/`—are created locally and are not part of the application source tree.
 
-## License and attribution
+<a id="license-and-attribution"></a>
+## 📜 License and attribution
 
 The project source code is licensed under the MIT License; see [LICENSE](LICENSE). NASA/IPAC IRSA data products, SIMBAD data, bundled astronomical catalogs, and third-party imagery are not relicensed by that file. Follow the applicable source terms and attribution guidance when reusing them. Cosmic Eye is not affiliated with or endorsed by NASA, JPL, Caltech, or the SPHEREx mission team.
 
-## Keep exploring
+## 🌠 Start exploring
 
-Start with [Run locally](#run-locally), then choose a target in **Popular Regions** or enter coordinates in **Manual Search**. For implementation notes and data provenance, see the [project handoff](handoffs/handoff_updated.md) and [data provenance guide](docs/data_provenance.md).
+Start with [Run locally](#run-locally), then pick a target in **Popular Regions** or enter coordinates in **Manual Search**. For implementation notes and data provenance, see the [project handoff](handoffs/handoff_updated.md) and [data provenance guide](docs/data_provenance.md).
