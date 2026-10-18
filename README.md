@@ -232,8 +232,4 @@ cosmic-eye/
 
 Generated files and local environments such as `frontend/node_modules/`, `frontend/dist/`, `backend/.venv/`, and `backend/tmp/previews/` are local build/runtime artifacts and are not part of the application source tree.
 
-## Checks
-
-Run the configured checks from the repository root after setting up dependencies:
-
 ```
