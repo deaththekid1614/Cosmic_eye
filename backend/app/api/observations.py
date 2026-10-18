@@ -14,12 +14,20 @@ router = APIRouter()
 def get_observations(ra: float = Query(...), dec: float = Query(...), radius: float = Query(0.01), collection: str = Query("spherex_qr2"), page: int = Query(1), page_size: int = Query(10)):
     validate_coordinates(ra, dec, radius)
     validate_pagination(page, page_size)
-    return fetch_normalized_observations(ra, dec, radius, collection, page, page_size)
+    try:
+        return fetch_normalized_observations(ra, dec, radius, collection, page, page_size)
+    except Exception as e:
+        print(f"BACKEND ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"NASA Archive Error: {str(e)}")
 
 @router.get("/wavelengths", response_model=WavelengthResponse)
 def get_wavelengths(ra: float = Query(...), dec: float = Query(...), radius: float = Query(0.01), collection: str = Query("spherex_qr2")):
     validate_coordinates(ra, dec, radius)
-    return fetch_wavelength_sets(ra, dec, radius, collection)
+    try:
+        return fetch_wavelength_sets(ra, dec, radius, collection)
+    except Exception as e:
+        print(f"BACKEND ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"NASA Archive Error: {str(e)}")
 
 @router.get("/featured")
 def get_featured():

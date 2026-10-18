@@ -12,7 +12,7 @@ export default function ExplorePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasHandledState = useRef(false); // Prevents infinite loops
+  const hasHandledState = useRef(false);
   
   const [query, setQuery] = useState('');
   const [ra, setRa] = useState('304.69');
@@ -26,8 +26,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const state = location.state as any;
     if (!state || hasHandledState.current) return;
-    
-    hasHandledState.current = true; // Mark as handled
+    hasHandledState.current = true;
 
     if (state.ra && state.dec) {
       setRa(state.ra); setDec(state.dec);
@@ -43,12 +42,10 @@ export default function ExplorePage() {
   }, [location.state]);
 
   const handleRandom = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const data = await fetchJson<{ ra: number, dec: number }>('/api/v1/observations/random');
-      setRa(data.ra.toString());
-      setDec(data.dec.toString());
+      setRa(data.ra.toString()); setDec(data.dec.toString());
       handleSearch(data.ra.toString(), data.dec.toString());
     } catch (err) {
       setError("Failed to generate random coordinates.");
@@ -58,28 +55,25 @@ export default function ExplorePage() {
 
   const handleAiSearch = async (searchQuery: string) => {
     if (!searchQuery) return;
-    setAiLoading(true);
-    setError(null);
+    setAiLoading(true); setError(null);
     try {
       const data = await fetchJson<{ ra: number, dec: number }>(`/api/v1/observations/ai-search?q=${encodeURIComponent(searchQuery)}`);
-      setRa(data.ra.toString());
-      setDec(data.dec.toString());
+      setRa(data.ra.toString()); setDec(data.dec.toString());
       await handleSearch(data.ra.toString(), data.dec.toString());
     } catch (err: any) {
-      setError(`Could not find "${searchQuery}". Try "Orion" or "Andromeda".`);
+      setError(`Simbad could not find "${searchQuery}". Try a valid astronomical object like "Sirius" or "M31".`);
     } finally {
       setAiLoading(false);
     }
   };
 
   const handleSearch = async (searchRa: string, searchDec: string) => {
-    setLoading(true);
-    setError(null);
-    setResults([]);
+    setLoading(true); setError(null); setResults([]);
     try {
       const data = await searchObservations(Number(searchRa), Number(searchDec), 0.01);
       setResults(data.items);
     } catch (err: any) {
+      // Show the actual backend error instead of a generic 502
       setError(err.message || 'Failed to search the NASA archive.');
     } finally {
       setLoading(false);
@@ -128,7 +122,7 @@ export default function ExplorePage() {
           <div className="form-actions"><button type="submit" className="glow-btn" disabled={loading} style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px' }}>{loading ? 'Searching...' : 'Search Archive'}</button></div>
         </form>
 
-        {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', border: '1px solid rgba(255,100,100,0.3)', marginBottom: '16px' }}>{error}</div>}
+        {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', border: '1px solid rgba(255,100,100,0.3)', marginBottom: '16px', fontWeight: 500 }}>{error}</div>}
 
         <div className="results-grid">
           {results.map((obs) => (

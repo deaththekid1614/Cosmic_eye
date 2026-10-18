@@ -4,7 +4,7 @@ import { searchObservations } from '../api/observations';
 import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
 import ObservationViewer from '../components/ObservationViewer';
-import { Sparkles, Loader2, Activity } from 'lucide-react';
+import { Sparkles, Loader2, Activity, AlertCircle } from 'lucide-react';
 import { fetchJson } from '../api/client';
 
 export default function AISearchPage() {
@@ -15,9 +15,8 @@ export default function AISearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Observation[]>([]);
   const [selectedObs, setSelectedObs] = useState<Observation | null>(null);
-  const [searchedObject, setSearchedObject] = useState<string | null>(null);
   
-  // Store the coords found by the AI so we can pass them to Wavelengths
+  const [searchedObject, setSearchedObject] = useState<string | null>(null);
   const [resolvedCoords, setResolvedCoords] = useState<{ ra: number, dec: number } | null>(null);
 
   const handleAiSearch = async () => {
@@ -34,11 +33,22 @@ export default function AISearchPage() {
       setSearchedObject(coords.matched_query);
       setResolvedCoords({ ra: coords.ra, dec: coords.dec });
       
-      // 2. Fetch the actual SPHEREx data for those coordinates
-      const data = await searchObservations(coords.ra, coords.dec, 0.01);
-      setResults(data.items);
-    } catch (err: any) {
-      setError(`Simbad AI could not find "${query}". Try "Andromeda" or "Orion".`);
+      try {
+        // 2. Fetch the actual SPHEREx data for those coordinates
+        const data = await searchObservations(coords.ra, coords.dec, 0.01);
+        setResults(data.items);
+        
+        if (data.items.length === 0) {
+          setError(`AI found ${coords.matched_query}, but NASA has no SPHEREx observations at this exact coordinate yet.`);
+        }
+      } catch (nasaErr: any) {
+        // NASA fetch failed
+        setError(nasaErr.message || `AI found ${coords.matched_query}, but the NASA archive timed out. Please try again.`);
+      }
+
+    } catch (aiErr: any) {
+      // AI Step failed
+      setError(`AI could not find "${query}". Try a valid astronomical object like "Sirius", "Orion", or "M31".`);
     } finally {
       setLoading(false);
     }
@@ -54,7 +64,6 @@ export default function AISearchPage() {
             <p>Type the name of any object in the known universe.</p>
           </div>
           
-          {/* New Wavelength Button (Only shows if AI found coordinates) */}
           {resolvedCoords && (
             <button 
               onClick={() => navigate('/wavelengths', { state: { ra: resolvedCoords.ra, dec: resolvedCoords.dec } })}
@@ -83,7 +92,12 @@ export default function AISearchPage() {
           </div>
         </div>
         
-        {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', border: '1px solid rgba(255,100,100,0.3)', marginBottom: '16px' }}>
+            <AlertCircle size={20} />
+            <span style={{ fontWeight: 500 }}>{error}</span>
+          </div>
+        )}
         
         {searchedObject && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '16px' }}>
