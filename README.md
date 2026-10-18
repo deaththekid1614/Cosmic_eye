@@ -32,43 +32,40 @@ The project was built for the 2026 NASA Space Apps Challenge. It is an independe
 
 ## End-to-end architecture
 
-This block diagram shows the main browser, API, and data-service boundaries. The three backend paths are separate operations: target resolution, archive metadata search, and FITS preview generation.
+This block diagram follows a request from the browser through the API and out to the astronomy data services. It shows the three backend jobs separately: resolve a name, find image products, and render a preview.
 
-```mermaid
-flowchart LR
-    subgraph Browser[Browser]
-        User[User] --> UI[React and TypeScript UI]
-        UI --> Client[Typed API client]
-    end
-
-    subgraph Backend[FastAPI backend]
-        API[API routes<br/>/api/v1]
-        Resolver[Target resolver]
-        Archive[Archive service]
-        Adapter[Astroquery SIA adapter]
-        Preview[FITS preview service]
-        Cache[(Local JPEG cache)]
-        API --> Resolver
-        API --> Archive
-        Archive --> Adapter
-        API --> Preview
-        Preview <--> Cache
-    end
-
-    subgraph External[External astronomy services]
-        SIMBAD[(SIMBAD)]
-        SIA[(NASA/IPAC IRSA<br/>SPHEREx SIA2)]
-        FITS[(IRSA FITS products)]
-    end
-
-    Client -->|Search and preview requests| API
-    API -->|JSON and JPEG responses| Client
-    Resolver <-->|Name and coordinates| SIMBAD
-    Adapter <-->|Position query and image records| SIA
-    Preview <-->|FITS download| FITS
+```text
++-------------------------------------------------------------------+
+| 1. BROWSER                                                        |
+| User -> React pages -> typed API client                           |
++----------------------------------+--------------------------------+
+                                   | HTTP requests to /api/v1
+                                   v
++-------------------------------------------------------------------+
+| 2. FASTAPI BACKEND                                                |
+| Routes validate coordinates and dispatch each request:           |
+|                                                                   |
+|    Name resolver          Archive service       Preview service  |
+|    local aliases/SIMBAD   calibrated products   FITS -> JPEG     |
++----------+-----------------------+----------------------+---------+
+           |                       |                      |
+           v                       v                      v
++-------------------+   +----------------------+   +-------------------+
+| SIMBAD            |   | Astroquery SIA       |   | IRSA FITS product |
+| name -> RA / Dec  |   | -> SPHEREx QR2      |   | -> pixels         |
++---------+---------+   +----------+-----------+   +---------+---------+
+          |                        |                         |
+          +------------------------+-------------------------+
+                                   v
++-------------------------------------------------------------------+
+| 3. RESPONSE                                                       |
+| Observation metadata returns as JSON. FITS pixels are normalized, |
+| assigned a display palette, and saved in the local JPEG cache.    |
+| The browser displays the preview, metadata, and source link.      |
++-------------------------------------------------------------------+
 ```
 
-**Typical user flow:** AI Search resolves a name to coordinates, then calls the archive search path. Manual Search starts with coordinates and skips name resolution. Browse and Sky Map provide coordinates from a selected region. The UI sends a product URL to the preview endpoint when it needs an image; that endpoint returns a cached JPEG or creates one from the FITS product. Color Lab additionally uses the wavelength-group endpoint to populate its band selector and scan queue.
+**Typical user flow:** AI Search resolves a name to coordinates, then searches the archive. Manual Search starts with coordinates and skips name resolution. Browse and Sky Map supply coordinates from a selected region. When a card or viewer needs an image, the browser requests a preview; the backend returns a cached JPEG or builds one from the FITS product. Color Lab also requests available wavelength groups for its band selector and scan queue.
 
 ### Component responsibilities
 
@@ -96,7 +93,7 @@ Single-band previews are display renderings, not the underlying science arrays. 
 
 ## Cross-check: M74 (Phantom Galaxy)
 
-On 2026-10-18, we cross-checked the M74 search shown in the app against the SIMBAD object position and the actual SPHEREx archive footprints:
+On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD and a live positional query of the SPHEREx QR2 archive:
 
 | Check | Result |
 | --- | --- |
@@ -105,7 +102,9 @@ On 2026-10-18, we cross-checked the M74 search shown in the app against the SIMB
 | Why image centers differ | Those records report tile centers around RA `23.57°`, Dec `+14.81°` for the first product, roughly `1.14°` from M74. The archive returns them because their larger image footprints cover the target; the center is not M74’s position. |
 | What the preview proves | It is a real SPHEREx infrared tile that covers the target. The app preview shows the tile’s broad field; it is not a crop or a claim that M74 is visibly resolved in that thumbnail. |
 
-This check confirms the search position and archive coverage. It does not establish image quality for science analysis or mean that the thumbnail is a close-up of the galaxy.
+**What this validates:** the M74 name resolves to the expected position, the app searches those coordinates, and the returned archive footprints cover that position. This is an end-to-end cross-check of this target lookup and coverage path.
+
+**What it does not validate:** this single example does not verify every catalog entry, every archive result, the photometric calibration of an image, or a scientific detection. The preview remains a wide-field infrared tile, not a close-up of the galaxy.
 
 ## Technology
 
