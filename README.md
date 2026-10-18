@@ -35,37 +35,49 @@ The project was built for the 2026 NASA Space Apps Challenge. It is an independe
 This block diagram follows a request from the browser through the API and out to the astronomy data services. It shows the three backend jobs separately: resolve a name, find image products, and render a preview.
 
 ```text
-+-------------------------------------------------------------------+
-| 1. BROWSER                                                        |
-| User -> React pages -> typed API client                           |
-+----------------------------------+--------------------------------+
-                                   | HTTP requests to /api/v1
-                                   v
-+-------------------------------------------------------------------+
-| 2. FASTAPI BACKEND                                                |
-| Routes validate coordinates and dispatch each request:           |
-|                                                                   |
-|    Name resolver          Archive service       Preview service  |
-|    local aliases/SIMBAD   calibrated products   FITS -> JPEG     |
-+----------+-----------------------+----------------------+---------+
-           |                       |                      |
-           v                       v                      v
-+-------------------+   +----------------------+   +-------------------+
-| SIMBAD            |   | Astroquery SIA       |   | IRSA FITS product |
-| name -> RA / Dec  |   | -> SPHEREx QR2      |   | -> pixels         |
-+---------+---------+   +----------+-----------+   +---------+---------+
-          |                        |                         |
-          +------------------------+-------------------------+
-                                   v
-+-------------------------------------------------------------------+
-| 3. RESPONSE                                                       |
-| Observation metadata returns as JSON. FITS pixels are normalized, |
-| assigned a display palette, and saved in the local JPEG cache.    |
-| The browser displays the preview, metadata, and source link.      |
-+-------------------------------------------------------------------+
++------------------------------------------------------------------+
+| 1. BROWSER                                                       |
+| User -> React pages -> typed API client                          |
++-------------------------------+----------------------------------+
+                                | HTTP requests to /api/v1
+                                v
++------------------------------------------------------------------+
+| 2. FASTAPI BACKEND                                               |
+| Validates inputs and dispatches each request to the right flow.  |
+|                                                                  |
+| NAME SEARCH                                                      |
+| Local aliases or SIMBAD -> target coordinates returned to UI     |
+|                                                                  |
+| ARCHIVE SEARCH                                                   |
+| Coordinates -> archive service -> Astroquery SIA2 -> IRSA QR2    |
+| IRSA image records -> normalized observation JSON                |
+|                                                                  |
+| IMAGE PREVIEW                                                    |
+| IRSA product URL -> download FITS -> normalize and palette       |
+| -> local JPEG cache                                              |
++-------------------------------+----------------------------------+
+                                | JSON results and JPEG previews
+                                v
++------------------------------------------------------------------+
+| 3. BROWSER RESULT                                                |
+| React renders images, field-center metadata, details, and links.  |
++------------------------------------------------------------------+
 ```
 
 **Typical user flow:** AI Search resolves a name to coordinates, then searches the archive. Manual Search starts with coordinates and skips name resolution. Browse and Sky Map supply coordinates from a selected region. When a card or viewer needs an image, the browser requests a preview; the backend returns a cached JPEG or builds one from the FITS product. Color Lab also requests available wavelength groups for its band selector and scan queue.
+
+## AI and machine learning
+
+The app’s “AI Search” label describes an astronomical name lookup. The current user-facing product does not run a generative AI model or a trained machine-learning model.
+
+| Component | What is actually used | What it does not do |
+| --- | --- | --- |
+| Object-name search | A local alias table for common objects, followed by an online SIMBAD lookup for other names. | Does not interpret open-ended questions or generate answers. A result supplies a catalog position for an archive query. |
+| Wavelength labels | Deterministic thresholds in `backend/app/services/ml_service.py`: `<1.65 µm`, `<2.43 µm`, `<3.10 µm`, and longer bands. | Does not analyze pixels, detect stars/nebulae, or predict anything. The label describes the wavelength band. |
+| XGBoost dependency | `xgboost` is listed in `backend/requirements.txt`. | No active service imports XGBoost, loads trained weights, or runs XGBoost inference. The app has no active neural-network or LLM inference path. |
+| Color palettes | Matplotlib colormaps applied to normalized FITS pixels. | This is image rendering, not AI or learned image classification. |
+
+Accordingly, there is no trained model accuracy score to report. The M74 cross-check below validates one name-resolution and archive-coverage example; it is not a model evaluation.
 
 ### Component responsibilities
 

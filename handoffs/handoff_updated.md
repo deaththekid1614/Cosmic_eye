@@ -8,6 +8,10 @@ Cosmic Eye is a React and FastAPI web application for browsing public SPHEREx in
 
 It is an independent prototype built for the 2026 NASA Space Apps Challenge, not an official NASA product. It is not a planet-finding or discovery-confirmation system.
 
+## AI and ML used by the current app
+
+The “AI Search” route uses a local alias table for common objects and SIMBAD name resolution for other object names. It returns catalog coordinates for a subsequent archive query; it is not a generative assistant. Archive-result labels come from deterministic wavelength thresholds in `backend/app/services/ml_service.py`, not image-content recognition. The `xgboost` package appears in `backend/requirements.txt`, but the active app does not import it, load a trained model, or run inference. There is no current LLM or trained ML model whose prediction accuracy can be reported.
+
 ## Current frontend
 
 Frontend entry and routing are in `frontend/src/main.tsx` and `frontend/src/App.tsx`. Shared layout is in `frontend/src/components/AppHeader.tsx` and `Sidebar.tsx`; styling is in `frontend/src/styles/`.
@@ -102,6 +106,8 @@ To run configured checks, provision `backend/.venv` and install frontend depende
 On 2026-10-18, we checked the app’s Phantom Galaxy (M74) search against SIMBAD and queried the SPHEREx QR2 archive at the target coordinates. SIMBAD’s ICRS position is RA `24.1739379°`, Dec `+15.7836409°`, matching the app search coordinates RA `24.17393792°`, Dec `+15.78364083°`. The IRSA SIA2 response included products shown in the app (`2026W01_2A_0510_1`, `2026W01_2A_0510_2`, and `2026W01_2A_0510_4`); their `s_region` polygons cover M74. For the first product, the field center is about RA `23.57°`, Dec `+14.81°`, roughly `1.14°` from the galaxy. This is consistent with a wide SPHEREx footprint covering M74; it does not mean the thumbnail is a crop or a resolved close-up of the galaxy.
 
 References: [SIMBAD M 74 record](https://simbad.u-strasbg.fr/simbad/sim-id?Ident=M+74), [IRSA SPHEREx SIA2 data-access guide](https://caltech-ipac.github.io/spherex-archive-documentation/spherex-data-access/).
+
+This validates the M74 name-resolution and archive-coverage path for this example. It does not validate every catalog entry or represent an evaluation of an ML model; the current app does not use a trained model for this workflow.
 
 ## Important source locations
 
