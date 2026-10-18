@@ -18,7 +18,6 @@ Built for the **2026 NASA Space Apps Challenge**, Cosmic Eye brings astronomy ar
 - [Configuration](#configuration)
 - [API](#api)
 - [Project structure](#project-structure)
-- [Checks](#checks)
 - [License and attribution](#license-and-attribution)
 
 ## Features
@@ -236,6 +235,12 @@ cosmic-eye/
     └── …                             Earlier staged project notes
 ```
 
-Generated files and local environments such as `frontend/node_modules/`, `frontend/dist/`, `backend/.venv/`, and `backend/tmp/previews/` are local build/runtime artifacts and are not part of the application source tree.
+Generated files and local environments—including `frontend/node_modules/`, `frontend/dist/`, `backend/.venv/`, and `backend/tmp/previews/`—are created locally and are not part of the application source tree.
 
-```
+## License and attribution
+
+The project source code is licensed under the MIT License; see [LICENSE](LICENSE). NASA/IPAC IRSA data products, SIMBAD data, bundled astronomical catalogs, and third-party imagery are not relicensed by that file. Follow the applicable source terms and attribution guidance when reusing them. Cosmic Eye is not affiliated with or endorsed by NASA, JPL, Caltech, or the SPHEREx mission team.
+
+## Keep exploring
+
+Start with [Run locally](#run-locally), then choose a target in **Popular Regions** or enter coordinates in **Manual Search**. For implementation notes and data provenance, see the [project handoff](handoffs/handoff_updated.md) and [data provenance guide](docs/data_provenance.md).
