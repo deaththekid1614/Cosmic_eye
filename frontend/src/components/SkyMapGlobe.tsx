@@ -23,6 +23,11 @@ const CONSTELLATION_PATHS = [
   { name: 'Cygnus', paths: [[102098, 100453, 9640], [100453, 102488, 97165]] },
   { name: 'Leo', paths: [[49669, 50583, 54879, 54872, 50335, 49669]] },
 ];
+const GALACTIC_TO_EQUATORIAL = new THREE.Matrix3().set(
+  -0.0548755604, 0.4941094279, -0.8676661490,
+  -0.8734370902, -0.4448296300, -0.1980763734,
+  -0.4838350155, 0.7469822445, 0.4559837762,
+);
 
 function skyPosition(raDegrees: number, decDegrees: number, radius = SPHERE_RADIUS) {
   const ra = THREE.MathUtils.degToRad(raDegrees);
@@ -34,10 +39,71 @@ function skyPosition(raDegrees: number, decDegrees: number, radius = SPHERE_RADI
   );
 }
 
+function galacticPosition(longitudeDegrees: number, latitudeDegrees: number, radius: number) {
+  const longitude = THREE.MathUtils.degToRad(longitudeDegrees);
+  const latitude = THREE.MathUtils.degToRad(latitudeDegrees);
+  const equatorial = new THREE.Vector3(
+    Math.cos(latitude) * Math.cos(longitude),
+    Math.cos(latitude) * Math.sin(longitude),
+    Math.sin(latitude),
+  ).applyMatrix3(GALACTIC_TO_EQUATORIAL).normalize();
+  const ra = THREE.MathUtils.radToDeg(Math.atan2(equatorial.y, equatorial.x) + Math.PI * 2) % 360;
+  const dec = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(equatorial.z, -1, 1)));
+  return skyPosition(ra, dec, radius);
+}
+
+function createSpiralGalaxyTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const glow = context.createRadialGradient(64, 64, 3, 64, 64, 56);
+  glow.addColorStop(0, 'rgba(255,255,255,.9)');
+  glow.addColorStop(.18, 'rgba(150,205,255,.58)');
+  glow.addColorStop(1, 'rgba(90,155,255,0)');
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 128, 128);
+  context.save();
+  context.translate(64, 64);
+  context.rotate(-.38);
+  for (let arm = 0; arm < 2; arm += 1) {
+    context.beginPath();
+    for (let step = 0; step <= 120; step += 1) {
+      const progress = step / 120;
+      const angle = arm * Math.PI + progress * Math.PI * 3.6;
+      const radius = 5 + progress * 48;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius * .58;
+      if (step === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.strokeStyle = 'rgba(235,247,255,.92)';
+    context.lineWidth = 4.2;
+    context.lineCap = 'round';
+    context.shadowColor = 'rgba(110,180,255,.9)';
+    context.shadowBlur = 9;
+    context.stroke();
+  }
+  context.restore();
+  context.beginPath();
+  context.arc(64, 64, 5, 0, Math.PI * 2);
+  context.fillStyle = '#ffffff';
+  context.shadowColor = '#c4e5ff';
+  context.shadowBlur = 12;
+  context.fill();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function targetColor(type: string) {
-  if (/galaxy/i.test(type)) return 0x75b7ff;
-  if (/cluster/i.test(type)) return 0xffce72;
   if (/nebula|star-forming|complex|remnant/i.test(type)) return 0xd892ff;
+  if (/planet|exoplanet/i.test(type)) return 0xff8066;
+  if (/galaxy/i.test(type)) return 0x75b7ff;
+  if (/star|stellar|cluster|association/i.test(type)) return 0xffd166;
   return 0x7ee7d3;
 }
 
@@ -92,7 +158,7 @@ function addConstellationLabel(group: THREE.Group, name: string, positions: THRE
 
 export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal, showGrid, showConstellations, focusedTarget, onHover }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const markerMap = useRef(new Map<string, THREE.Mesh>());
+  const markerMap = useRef(new Map<string, THREE.Object3D>());
   const viewRef = useRef<{ reset: () => void; focus: (ra: number, dec: number) => void } | null>(null);
   const gridRef = useRef<THREE.Group | null>(null);
   const constellationsRef = useRef<THREE.Group | null>(null);
@@ -163,8 +229,35 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
     globe.add(starPoints);
     const brightGeometry = new THREE.BufferGeometry();
     brightGeometry.setAttribute('position', new THREE.Float32BufferAttribute(brightPositions, 3));
-    const brightPoints = new THREE.Points(brightGeometry, new THREE.PointsMaterial({ color: 0xffe9c1, size: 0.28, sizeAttenuation: true, transparent: true, opacity: 0.98, depthWrite: false }));
+    const brightPoints = new THREE.Points(brightGeometry, new THREE.PointsMaterial({ color: 0xffd166, size: 0.28, sizeAttenuation: true, transparent: true, opacity: 0.98, depthWrite: false }));
     globe.add(brightPoints);
+
+    // This dotted band follows the ICRS galactic plane; its points are illustrative, not archive pixels.
+    let randomSeed = 700700;
+    const random = () => {
+      randomSeed = (1664525 * randomSeed + 1013904223) >>> 0;
+      return randomSeed / 4294967296;
+    };
+    const milkyWayPositions: number[] = [];
+    for (let index = 0; index < 7200; index += 1) {
+      const longitude = random() < .36 ? ((random() + random() + random()) / 3 - .5) * 90 : random() * 360;
+      const latitude = (random() + random() + random() + random() - 2) * 3.8;
+      const position = galacticPosition(longitude, latitude, SPHERE_RADIUS - .5);
+      milkyWayPositions.push(position.x, position.y, position.z);
+    }
+    const milkyWayGeometry = new THREE.BufferGeometry();
+    milkyWayGeometry.setAttribute('position', new THREE.Float32BufferAttribute(milkyWayPositions, 3));
+    const milkyWayStars = new THREE.Points(milkyWayGeometry, new THREE.PointsMaterial({
+      color: 0xbba9ff,
+      size: .095,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: .38,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    milkyWayStars.renderOrder = 1;
+    globe.add(milkyWayStars);
 
     const constellations = new THREE.Group();
     constellations.visible = showConstellations;
@@ -187,21 +280,32 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
     globe.add(markers);
     const markerGeometry = new THREE.SphereGeometry(0.24, 24, 20);
     const markerMaterials = new Map<number, THREE.MeshBasicMaterial>();
+    const spiralTexture = createSpiralGalaxyTexture();
     markerMap.current.clear();
     for (const target of targets) {
       const color = targetColor(target.type);
-      let material = markerMaterials.get(color);
-      if (!material) {
-        material = new THREE.MeshBasicMaterial({ color, depthWrite: false, depthTest: false });
-        markerMaterials.set(color, material);
+      const isGalaxy = /galaxy/i.test(target.type);
+      let marker: THREE.Object3D;
+      if (isGalaxy && spiralTexture) {
+        marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: spiralTexture, color, transparent: true, depthWrite: false, depthTest: false }));
+        marker.scale.set(1.9, 1.5, 1);
+        marker.userData.baseScale = [1.9, 1.5, 1];
+      } else {
+        let material = markerMaterials.get(color);
+        if (!material) {
+          material = new THREE.MeshBasicMaterial({ color, depthWrite: false, depthTest: false });
+          markerMaterials.set(color, material);
+        }
+        marker = new THREE.Mesh(markerGeometry, material);
+        marker.userData.baseScale = [1, 1, 1];
       }
-      const marker = new THREE.Mesh(markerGeometry, material);
       marker.position.copy(skyPosition(target.ra, target.dec, SPHERE_RADIUS + 0.4));
       marker.userData.targetId = target.id;
       marker.renderOrder = 3;
       markerMap.current.set(target.id, marker);
       markers.add(marker);
 
+      if (isGalaxy) continue;
       const halo = new THREE.Mesh(
         new THREE.SphereGeometry(0.42, 20, 16),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.17, depthWrite: false, depthTest: false }),
@@ -375,8 +479,10 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
   useEffect(() => {
     for (const [id, marker] of markerMap.current) {
       const selected = id === selectedId;
-      marker.scale.setScalar(selected ? 1.65 : 1);
-      const material = marker.material as THREE.MeshBasicMaterial;
+      const [baseX, baseY, baseZ] = marker.userData.baseScale as [number, number, number];
+      const scale = selected ? 1.65 : 1;
+      marker.scale.set(baseX * scale, baseY * scale, baseZ * scale);
+      const material = (marker as THREE.Mesh | THREE.Sprite).material;
       material.color.set(selected ? 0xffffff : targetColor(targets.find((target) => target.id === id)?.type ?? ''));
     }
   }, [selectedId, targets]);

@@ -21,14 +21,14 @@ Frontend entry and routing are in `frontend/src/main.tsx` and `frontend/src/App.
 | `/` | Home page with featured target cards and entry points to search, browse, and Color Lab. Featured home imagery may be decorative external imagery. |
 | `/ai-search` | Resolves a target name through the backend, then loads archive observations around the returned coordinate. Per-result actions open Color Lab with that image’s region and observation selected. |
 | `/explore` | Manual coordinate/archive search, with optional object-name resolution and observation detail viewing. Search results can be passed to Color Lab. |
-| `/browse` | Popular Regions and Recent Observations tabs. Region cards request genuine SPHEREx preview images lazily; Recent Observations uses the fixed sample field RA `304.69°`, Dec `42.44°`, radius `0.5°`, page size `20`, then sorts those results by date. |
-| `/popular-regions` | Alias to the same Browse page. |
-| `/skymap` | Interactive Three.js celestial sphere with drag rotation, scroll zoom, RA/Dec grid toggle, automatic spin, filters, target search, and target selection. The selected target can open Manual Search. User-added targets are saved in browser local storage. |
+| `/browse` | Loads recent observations automatically, sorted newest first, with a refresh action. It queries the fixed sample field RA `304.69°`, Dec `42.44°`, radius `0.5°`, page size `20`; it is not a mission-wide latest-observation feed. |
+| `/popular-regions` | Shows only the curated popular-region cards. Selecting a region loads its archive observations and previews. |
+| `/skymap` | Interactive Three.js celestial sphere with drag rotation, scroll zoom, optional RA/Dec grid and constellation outlines, target filters/search, and target selection. It supports browser full-screen mode and automatically rotates when not being dragged. Galaxy targets use spiral symbols; other object classes use colored markers. The selected target can open Manual Search. User-added targets are saved in browser local storage after archive coverage is confirmed. |
 | `/rgb` | Color Lab: fetches the available band groups for entered coordinates; supports five palettes, selecting individual bands, and choosing a scan from the observation queue. Only one band image is shown at a time. |
 | `/learn` | Short infrared explainer with an interactive illustrative signal graphic. This graphic is not an archive image. |
 | `/wavelengths` | Redirects to `/rgb`. Wavelength selection and queues are part of Color Lab; the backend wavelength endpoint remains active. |
 
-The built-in Sky Map target response combines 15 curated targets with 102 records from `backend/app/catalogs/messier_targets.json` (117 built-in targets at the current catalog revision). `frontend/src/catalogs/hipparcos_bright_stars.json` contains 4,992 bright-star coordinate records used as the map backdrop. The target catalog is curated; it does not mean every SPHEREx observation or every known astronomical object is plotted.
+The built-in Sky Map target response combines 15 curated targets with 102 records from `backend/app/catalogs/messier_targets.json` (117 built-in targets at the current catalog revision). `frontend/src/catalogs/hipparcos_bright_stars.json` contains 4,992 bright-star coordinate records used as the map backdrop. A deterministic procedural star band is positioned along the galactic plane using a Galactic-to-equatorial coordinate transform. Its points are illustrative and are not archive pixels or a measured Milky Way image. Galaxy spiral markers are also symbolic icons, not object-specific morphology. The target catalog is curated; it does not mean every SPHEREx observation or every known astronomical object is plotted.
 
 ## User-facing data flow
 
@@ -97,7 +97,7 @@ To run configured checks, provision `backend/.venv` and install frontend depende
 - The RGB endpoint normalizes three inputs independently and crops arrays to common dimensions. It does not align images by WCS, reproject them, or calibrate color. Treat it as illustrative.
 - Bands returned for a search can belong to overlapping scans. A band list or queue is not a calibrated spectrum or guaranteed matched observation set.
 - Wavelength descriptions in `backend/app/services/ml_service.py` are fixed wavelength-range labels. They do not classify image contents, identify objects, or claim a detection.
-- Sky Map geometry shows direction only. It does not encode distance, physical scale, or a physical model of object placement.
+- Sky Map geometry shows direction only. It does not encode distance, physical scale, or a physical model of object placement. Its Milky Way star band is a procedural guide to the galactic plane, and galaxy spiral symbols only identify the target class.
 - Featured images on Home can use external decorative imagery. Popular Region cards request actual SPHEREx archive preview products separately.
 - The app does not claim to detect Planet X or confirm transient discoveries. Interpret observations through the archive product, its metadata, calibration, and applicable scientific documentation.
 

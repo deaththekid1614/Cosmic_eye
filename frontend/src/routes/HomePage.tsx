@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Shuffle, Sparkles, Palette } from 'lucide-react';
+import { ArrowRight, Calendar, Globe2, Shuffle, Sparkles, Palette } from 'lucide-react';
 import { getFeaturedTargets } from '../api/observations';
 import type { FeaturedTarget } from '../types/observation';
 
@@ -29,7 +29,7 @@ export default function HomePage() {
             <p className="hero-sub">Explore the sky, compare observations across time and wavelengths, and find interesting changes in the universe.</p>
             <div className="hero-actions">
               <Link to="/explore" className="glow-btn">Start Exploring <ArrowRight size={18} /></Link>
-              <Link to="/popular-regions" className="hero-regions-link">Popular Regions <ArrowRight size={16} /></Link>
+              <Link to="/skymap" className="hero-regions-link">Explore Sky Map <Globe2 size={16} /></Link>
             </div>
           </div>
         </div>

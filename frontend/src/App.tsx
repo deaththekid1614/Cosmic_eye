@@ -36,8 +36,8 @@ export default function App() {
             <Route path="/rgb" element={<RGBExplorerPage />} /> {/* <-- NEW ROUTE */}
             <Route path="/learn" element={<LearnPage />} />
             <Route path="/ai-search" element={<AISearchPage />} />
-            <Route path="/browse" element={<BrowsePage />} />
-            <Route path="/popular-regions" element={<BrowsePage />} />
+            <Route path="/browse" element={<BrowsePage mode="recent" />} />
+            <Route path="/popular-regions" element={<BrowsePage mode="regions" />} />
             <Route path="/skymap" element={<Suspense fallback={<div className="dashboard-wrapper">Loading 3D sky map…</div>}><SkyMapPage /></Suspense>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

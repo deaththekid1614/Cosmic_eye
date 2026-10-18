@@ -29,9 +29,9 @@ Explore the app from a target, a coordinate, or a sky-wide view:
 | 🏠 Home (`/`) | Introduces Cosmic Eye and links to search, browse, and featured targets. | Featured thumbnails can be decorative external images; selecting a target starts an archive search at its coordinates. |
 | ✨ AI Search (`/ai-search`) | Resolves an astronomical object name and finds SPHEREx products near its position. | Uses SIMBAD plus a small local alias list. “AI” is the product label; this is name resolution, not a generative assistant. |
 | 🔎 Manual Search (`/explore`) | Searches by right ascension and declination; opens observation metadata and source links. | Results are image footprints around the searched position. Displayed RA/Dec values are the product field centers. |
-| 🗂️ Browse (`/browse`) | Offers Popular Regions and Recent Observations tabs. | Region cards load real SPHEREx previews. Recent Observations queries a fixed sample sky field, not a mission-wide date search. |
-| ⭐ Popular Regions (`/popular-regions`) | Opens Browse at its region tab. | Uses a curated target catalog; selecting a card opens that target’s archive observations. |
-| 🌌 Sky Map (`/skymap`) | Interactive Three.js sky sphere with rotation, zoom, grid, filters, target selection, and name search. | Displays 117 built-in target records and Hipparcos guide stars. Added targets are checked for archive coverage and saved in browser local storage. It is not a complete map of all observations. |
+| 🗂️ Browse (`/browse`) | Loads recent archive observations, sorted newest first, and lets users refresh the results. | Queries a fixed sample sky field; it is not a mission-wide date search. |
+| ⭐ Popular Regions (`/popular-regions`) | Shows the curated collection of well-known sky regions. | Region cards request SPHEREx archive previews and open observations for the selected target. |
+| 🌌 Sky Map (`/skymap`) | Full-screen-capable interactive Three.js sky view with drag rotation, zoom, coordinate grid, constellation guides, target filters, and name search. Galaxy targets use spiral symbols; other object classes use distinct marker colors. | Displays 117 built-in target records and Hipparcos guide stars. A starry band illustrates the Milky Way’s galactic plane. User-added targets are saved in browser local storage only after SPHEREx archive coverage is found. This is a curated view, not a complete map of all observations. |
 | 🎨 Color Lab (`/rgb`) | Changes the display palette or wavelength band for an infrared image; includes a queue of scans in the region. | Displays one band image at a time. Palettes: Inferno, Viridis, Plasma, Cividis, and Magma. |
 | 📖 Learn (`/learn`) | Explains infrared and how wavelength/palette choices affect display. | Includes an illustrative signal graphic, not observed SPHEREx data. |
 
@@ -69,7 +69,7 @@ Follow the data from a user's search to the image on screen. The backend handles
 +------------------------------------------------------------------+
 ```
 
-**Typical user flow:** AI Search resolves a name to coordinates, then searches the archive. Manual Search starts with coordinates and skips name resolution. Browse and Sky Map supply coordinates from a selected region. When a card or viewer needs an image, the browser requests a preview; the backend returns a cached JPEG or builds one from the FITS product. Color Lab also requests available wavelength groups for its band selector and scan queue.
+**Typical user flow:** AI Search resolves a name to coordinates, then searches the archive. Manual Search starts with coordinates and skips name resolution. Browse queries its fixed sample field; Popular Regions and Sky Map supply coordinates from a selected target. When an observation viewer needs an image, the browser requests a preview; the backend returns a cached JPEG or builds one from the FITS product. Color Lab also requests available wavelength groups for its band selector and scan queue.
 
 ## AI and machine learning
 
@@ -104,7 +104,7 @@ Single-band previews are display renderings, not the underlying science arrays. 
 - A search result’s RA and Dec are the image tile’s center. A tile can cover the requested target even when its center is some distance away. The preview can show a wide field rather than a close-up of the target.
 - IRSA results and available bands depend on the archive release and sky position. An empty result means no matching product was returned for that query; it does not mean there are no astronomical objects there.
 - The Color Lab queue groups archive records by observation ID. Bands may come from overlapping scans, and comparing them is not a calibrated spectrum.
-- The Sky Map plots catalog directions on a sphere centered at the SPHEREx observer viewpoint. Marker locations encode RA/Dec direction, not physical distance or object size. The background stars come from a bundled Hipparcos coordinate list; target markers represent catalog entries with recorded SPHEREx coverage.
+- The Sky Map plots catalog directions on a sphere centered at the SPHEREx observer viewpoint. Marker locations encode RA/Dec direction, not physical distance or object size. The background guide stars come from a bundled Hipparcos coordinate list. The lavender Milky Way band is a procedural, illustrative star field positioned along the galactic plane; it is not an observed image or a SPHEREx data layer. Target markers represent catalog entries with recorded SPHEREx coverage, and galaxy spirals are symbolic icons rather than depictions of each galaxy’s measured shape.
 - Observation wavelength labels describe the band. They do not identify the contents of an image. Do not interpret UI labels as scientific classifications or detections.
 - Archive files and externally hosted imagery retain their own source terms and attribution requirements. The repository’s MIT license does not relicense them.
 

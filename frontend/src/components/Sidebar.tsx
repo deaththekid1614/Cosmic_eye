@@ -4,10 +4,10 @@ import { Home, Search, BookOpen, Sparkles, Calendar, Palette, Star, Globe2 } fro
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
+  { to: '/skymap', label: 'Sky Map', icon: Globe2 },
   { to: '/ai-search', label: 'AI Search', icon: Sparkles },
   { to: '/browse', label: 'Browse', icon: Calendar },
   { to: '/popular-regions', label: 'Popular Regions', icon: Star },
-  { to: '/skymap', label: 'Sky Map', icon: Globe2 },
   { to: '/explore', label: 'Manual Search', icon: Search },
   { to: '/rgb', label: 'Color Lab', icon: Palette },
   { to: '/learn', label: 'Learn', icon: BookOpen },
