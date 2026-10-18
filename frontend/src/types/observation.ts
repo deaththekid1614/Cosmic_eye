@@ -32,3 +32,23 @@ export type ObservationListResponse = {
   query: QueryInfo;
   provenance: ProvenanceInfo;
 };
+
+// --- Stage 6: Wavelength Types ---
+
+export type BandDetail = {
+  band_name: string;
+  wavelength_um: number;
+  source_url: string;
+};
+
+export type WavelengthSet = {
+  obs_id: string;
+  ra: number;
+  dec: number;
+  bands: BandDetail[];
+};
+
+export type WavelengthResponse = {
+  sets: WavelengthSet[];
+  provenance: ProvenanceInfo;
+};

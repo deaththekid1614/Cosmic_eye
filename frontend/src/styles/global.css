@@ -154,3 +154,86 @@ ul { list-style: none; }
   .viewer-body { flex-direction: column; }
   .viewer-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border-color); }
 }
+
+/* --- Wavelength Explorer Layout --- */
+.wavelength-layout {
+  display: flex;
+  gap: 24px;
+  height: 70vh;
+}
+
+.wavelength-viewer {
+  flex: 1;
+  position: relative;
+  background: #000;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wavelength-viewer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wavelength-badge {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wavelength-sidebar {
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wavelength-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.wavelength-card h3 {
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wavelength-card.info {
+  background: rgba(79, 140, 255, 0.05);
+  border-color: rgba(79, 140, 255, 0.2);
+}
+
+.wavelength-card.info h3 {
+  color: var(--accent-blue);
+}
+
+@media (max-width: 1024px) {
+  .wavelength-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  .wavelength-viewer {
+    height: 50vh;
+  }
+  .wavelength-sidebar {
+    width: 100%;
+  }
+}
