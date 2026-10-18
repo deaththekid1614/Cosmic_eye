@@ -120,13 +120,21 @@ On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD a
 
 ## Technology
 
-| Area | Stack |
-| --- | --- |
-| Frontend | React 18, TypeScript, Vite, React Router, Three.js |
-| Backend | Python 3.11, FastAPI, Pydantic |
-| Archive and coordinates | Astroquery, Astropy, PyVO, NASA/IPAC IRSA, SIMBAD |
-| FITS previews | Astropy, NumPy, Matplotlib, Pillow |
-| Checks | pytest, Ruff, TypeScript compiler |
+| Area | Technologies | Role in this project |
+| --- | --- | --- |
+| Frontend | React 18, TypeScript 5.6, Vite 6 | Builds the browser interface and development server. |
+| Routing and UI | React Router 6, Lucide React, `react-zoom-pan-pinch` | Page navigation, icons, and image zoom/pan controls. |
+| 3D visualization | Three.js | Renders the interactive celestial sphere in Sky Map. |
+| Backend API | Python 3.11, FastAPI, Uvicorn, Pydantic 2, pydantic-settings | Serves and validates the `/api/v1` endpoints and application settings. |
+| Astronomy/archive access | Astroquery, PyVO, Astropy, NASA/IPAC IRSA, SIMBAD | Resolves target names and queries SPHEREx archive products and metadata. |
+| FITS image processing | Astropy, NumPy, Matplotlib, Pillow | Reads FITS data, scales pixel values, applies display palettes, and writes JPEG previews. |
+| HTTP and configuration | HTTPX, Requests, python-dotenv | Supports HTTP integrations and optional `.env` configuration. |
+| Scientific Python dependencies | SciPy, scikit-image, scikit-learn, XGBoost | Declared in the backend environment; they are not currently used for active model inference in the app. |
+| Quality checks | Ruff, pytest, pytest-asyncio, TypeScript compiler (`tsc`) | Python linting/tests and frontend type checking. |
+
+### AI and ML status
+
+Cosmic Eye currently has no trained model, neural network, or large language model in its request flow. The feature named **AI Search** looks up known aliases locally and uses SIMBAD through Astroquery to resolve other object names to catalog coordinates. Wavelength descriptions are assigned by fixed thresholds in `backend/app/services/ml_service.py`. The palette controls transform FITS pixels for display; they do not classify the image. Although scikit-learn and XGBoost are listed as dependencies, active application code does not load a trained model or call their inference APIs.
 
 ## Run locally
 
@@ -233,6 +241,8 @@ Run the configured checks from the repository root after setting up dependencies
 ```
 
 The script runs Ruff and pytest in the backend virtual environment, then the frontend TypeScript type check. To also create a production frontend bundle, run `cd frontend && npm run build`.
+
+The script uses `set -e`, so it stops at the first failing stage. If Ruff reports errors, pytest and the frontend type check have not run yet. A Ruff failure reports code-style and static lint findings; it does not by itself indicate that the site failed to start or that its API behavior is incorrect.
 
 ## License and attribution
 
