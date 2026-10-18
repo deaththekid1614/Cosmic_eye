@@ -62,7 +62,6 @@ export default function WavelengthsPage() {
     }
   };
 
-  // When clicking an observation in the sidebar, jump to its first band in the global list
   const handleSetChange = (set: WavelengthSet) => {
     if (set.bands.length > 0) {
       handleBandChange(set.bands[0]);
@@ -94,9 +93,7 @@ export default function WavelengthsPage() {
       {selectedBand && (
         <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flex: 1, minHeight: 0 }}>
           
-          {/* LEFT SIDE: BIG IMAGE + SLIDER (Uses all_bands) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: 0 }}>
-            
             <div style={{ flex: 1, position: 'relative', background: '#000', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
               {imageLoading && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
@@ -119,7 +116,6 @@ export default function WavelengthsPage() {
               )}
             </div>
 
-            {/* Slider uses all_bands! */}
             <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
               <input 
                 type="range" 
@@ -139,10 +135,7 @@ export default function WavelengthsPage() {
             </div>
           </div>
 
-          {/* RIGHT SIDE: SIDEBAR WITH ALL BANDS & QUEUE */}
           <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            {/* 1. ALL AVAILABLE BANDS */}
             <div className="wavelength-card" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', marginBottom: '8px' }}><Activity size={18} /> All Bands ({allBands.length})</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -164,7 +157,6 @@ export default function WavelengthsPage() {
               </div>
             </div>
 
-            {/* 2. OBSERVATION QUEUE */}
             <div className="wavelength-card" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <h3 style={{ fontSize: '1.05rem', marginBottom: '12px' }}>Observation Queue</h3>
               <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
@@ -189,7 +181,6 @@ export default function WavelengthsPage() {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
       )}

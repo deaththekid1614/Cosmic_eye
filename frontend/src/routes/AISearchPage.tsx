@@ -4,7 +4,7 @@ import { searchObservations } from '../api/observations';
 import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
 import ObservationViewer from '../components/ObservationViewer';
-import { Sparkles, Loader2, Activity, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, Activity, Palette, AlertCircle } from 'lucide-react';
 import { fetchJson } from '../api/client';
 
 export default function AISearchPage() {
@@ -21,33 +21,23 @@ export default function AISearchPage() {
 
   const handleAiSearch = async () => {
     if (!query) return;
-    setLoading(true);
-    setError(null);
-    setResults([]);
-    setSearchedObject(null);
-    setResolvedCoords(null);
+    setLoading(true); setError(null); setResults([]); setSearchedObject(null); setResolvedCoords(null);
     
     try {
-      // 1. AI resolves the name to coordinates
       const coords = await fetchJson<{ ra: number, dec: number, matched_query: string }>(`/api/v1/observations/ai-search?q=${encodeURIComponent(query)}`);
       setSearchedObject(coords.matched_query);
       setResolvedCoords({ ra: coords.ra, dec: coords.dec });
       
       try {
-        // 2. Fetch the actual SPHEREx data for those coordinates
         const data = await searchObservations(coords.ra, coords.dec, 0.01);
         setResults(data.items);
-        
         if (data.items.length === 0) {
           setError(`AI found ${coords.matched_query}, but NASA has no SPHEREx observations at this exact coordinate yet.`);
         }
       } catch (nasaErr: any) {
-        // NASA fetch failed
         setError(nasaErr.message || `AI found ${coords.matched_query}, but the NASA archive timed out. Please try again.`);
       }
-
     } catch (aiErr: any) {
-      // AI Step failed
       setError(`AI could not find "${query}". Try a valid astronomical object like "Sirius", "Orion", or "M31".`);
     } finally {
       setLoading(false);
@@ -65,13 +55,22 @@ export default function AISearchPage() {
           </div>
           
           {resolvedCoords && (
-            <button 
-              onClick={() => navigate('/wavelengths', { state: { ra: resolvedCoords.ra, dec: resolvedCoords.dec } })}
-              className="secondary-btn" 
-              style={{ borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Activity size={16} /> View Wavelengths for this Object
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => navigate('/wavelengths', { state: { ra: resolvedCoords.ra, dec: resolvedCoords.dec } })}
+                className="secondary-btn" 
+                style={{ borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Activity size={16} /> Wavelengths
+              </button>
+              <button 
+                onClick={() => navigate('/rgb', { state: { ra: resolvedCoords.ra, dec: resolvedCoords.dec } })}
+                className="secondary-btn" 
+                style={{ borderColor: '#c084fc', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Palette size={16} /> True Color
+              </button>
+            </div>
           )}
         </div>
 

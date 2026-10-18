@@ -7,6 +7,7 @@ import WavelengthsPage from './routes/WavelengthsPage';
 import LearnPage from './routes/LearnPage';
 import AISearchPage from './routes/AISearchPage';
 import BrowsePage from './routes/BrowsePage';
+import RGBExplorerPage from './routes/RGBExplorerPage'; // <-- IMPORTED
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/wavelengths" element={<WavelengthsPage />} />
+            <Route path="/rgb" element={<RGBExplorerPage />} /> {/* <-- NEW ROUTE */}
             <Route path="/learn" element={<LearnPage />} />
             <Route path="/ai-search" element={<AISearchPage />} />
             <Route path="/browse" element={<BrowsePage />} />

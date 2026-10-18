@@ -2,11 +2,12 @@ from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import Response
 from app.schemas.observation import ObservationListResponse, WavelengthResponse
 from app.services.archive_service import fetch_normalized_observations, fetch_wavelength_sets
-from app.services.preview_service import generate_preview
+from app.services.preview_service import generate_preview, generate_rgb_preview
 from app.services.featured_service import get_featured_targets
 from app.services.ai_service import parse_natural_language, get_random_coordinate
 from app.utils.limits import validate_coordinates, validate_pagination
 from app.config import settings
+from typing import List
 
 router = APIRouter()
 
@@ -17,8 +18,7 @@ def get_observations(ra: float = Query(...), dec: float = Query(...), radius: fl
     try:
         return fetch_normalized_observations(ra, dec, radius, collection, page, page_size)
     except Exception as e:
-        print(f"BACKEND ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"NASA Archive Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/wavelengths", response_model=WavelengthResponse)
 def get_wavelengths(ra: float = Query(...), dec: float = Query(...), radius: float = Query(0.01), collection: str = Query("spherex_qr2")):
@@ -26,8 +26,7 @@ def get_wavelengths(ra: float = Query(...), dec: float = Query(...), radius: flo
     try:
         return fetch_wavelength_sets(ra, dec, radius, collection)
     except Exception as e:
-        print(f"BACKEND ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"NASA Archive Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/featured")
 def get_featured():
@@ -44,6 +43,15 @@ def ai_search(q: str = Query(...)):
 def random_coord():
     coords = get_random_coordinate()
     return {"ra": coords[0], "dec": coords[1]}
+
+@router.get("/preview/rgb")
+def get_rgb_preview(url1: str = Query(...), url2: str = Query(...), url3: str = Query(...)):
+    for url in [url1, url2, url3]:
+        if not url.startswith("https://irsa.ipac.caltech.edu"):
+            raise HTTPException(status_code=400, detail="Invalid NASA URL")
+            
+    image_bytes = generate_rgb_preview([url1, url2, url3])
+    return Response(content=image_bytes, media_type="image/jpeg")
 
 @router.get("/preview")
 def get_preview(url: str = Query(...)):

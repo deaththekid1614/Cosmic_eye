@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Activity, BookOpen, Sparkles, Calendar } from 'lucide-react';
+import { Home, Search, Activity, BookOpen, Sparkles, Calendar, Palette } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/browse', label: 'Browse', icon: Calendar },
   { to: '/explore', label: 'Manual Search', icon: Search },
   { to: '/wavelengths', label: 'Wavelengths', icon: Activity },
+  { to: '/rgb', label: 'True Color', icon: Palette }, // <-- ADDED
   { to: '/learn', label: 'Learn', icon: BookOpen },
 ];
 
@@ -15,11 +16,18 @@ export default function Sidebar() {
     <aside className="sidebar">
       <nav className="side-nav">
         {navItems.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'side-link active' : 'side-link')}>
-            <item.icon size={18} /> {item.label}
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => (isActive ? 'side-link active' : 'side-link')}
+          >
+            <item.icon size={18} />
+            {item.label}
           </NavLink>
         ))}
       </nav>
+      
       <div className="sidebar-card">
         <div className="telescope-img">🔭</div>
         <h3>NASA SPHEREx</h3>

@@ -5,7 +5,7 @@ import { searchObservations } from '../api/observations';
 import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
 import ObservationViewer from '../components/ObservationViewer';
-import { Activity, Sparkles, Loader2 } from 'lucide-react';
+import { Activity, Sparkles, Loader2, Palette } from 'lucide-react';
 import { fetchJson } from '../api/client';
 
 export default function ExplorePage() {
@@ -73,7 +73,6 @@ export default function ExplorePage() {
       const data = await searchObservations(Number(searchRa), Number(searchDec), 0.01);
       setResults(data.items);
     } catch (err: any) {
-      // Show the actual backend error instead of a generic 502
       setError(err.message || 'Failed to search the NASA archive.');
     } finally {
       setLoading(false);
@@ -88,14 +87,19 @@ export default function ExplorePage() {
   return (
     <div className="dashboard-wrapper" style={{ maxWidth: '1100px', margin: '0 auto' }}>
       <section style={{ flex: 1 }}>
-        <div className="explore-header">
+        <div className="explore-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1>Explore NASA SPHEREx</h1>
             <p>Search the IRSA archive or ask the global AI database.</p>
           </div>
-          <button onClick={() => navigate('/wavelengths', { state: { ra, dec } })} className="secondary-btn" style={{ borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}>
-            <Activity size={16} /> View Wavelengths
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => navigate('/wavelengths', { state: { ra, dec } })} className="secondary-btn" style={{ borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}>
+              <Activity size={16} /> Wavelengths
+            </button>
+            <button onClick={() => navigate('/rgb', { state: { ra, dec } })} className="secondary-btn" style={{ borderColor: '#c084fc', color: '#c084fc' }}>
+              <Palette size={16} /> True Color
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
