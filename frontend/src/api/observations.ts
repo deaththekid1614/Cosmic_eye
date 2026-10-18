@@ -1,5 +1,5 @@
 import { fetchJson } from './client';
-import type { ObservationListResponse, WavelengthResponse } from '../types/observation';
+import type { ObservationListResponse, WavelengthResponse, FeaturedTarget } from '../types/observation';
 
 export async function searchObservations(
   ra: number,
@@ -31,4 +31,8 @@ export async function getWavelengthSets(
   });
 
   return fetchJson<WavelengthResponse>(`/api/v1/observations/wavelengths?${params.toString()}`);
+}
+
+export async function getFeaturedTargets(): Promise<FeaturedTarget[]> {
+  return fetchJson<FeaturedTarget[]>('/api/v1/observations/featured');
 }

@@ -1,10 +1,9 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-# --- Existing Models (Keep these) ---
 class ProvenanceInfo(BaseModel):
-    archive: str = Field(default="NASA/IPAC IRSA", description="Data source")
-    retrieved_at: str = Field(description="ISO-8601 timestamp of when the app fetched this")
+    archive: str = Field(default="NASA/IPAC IRSA")
+    retrieved_at: str
 
 class Observation(BaseModel):
     id: str
@@ -18,6 +17,7 @@ class Observation(BaseModel):
     source_url: str
     collection: str
     calib_level: int
+    classification: Optional[str] = None
 
 class QueryInfo(BaseModel):
     ra: float
@@ -33,23 +33,18 @@ class ObservationListResponse(BaseModel):
     query: QueryInfo
     provenance: ProvenanceInfo
 
-
-# --- Stage 6: New Wavelength Models ---
-
 class BandDetail(BaseModel):
-    """Represents a single wavelength band of a specific observation."""
-    band_name: str = Field(description="Human readable, e.g., '3.81-4.43 µm'")
-    wavelength_um: float = Field(description="Central wavelength in micrometers (for sorting)")
-    source_url: str = Field(description="Direct URL to the FITS file for this band")
+    band_name: str
+    wavelength_um: float
+    source_url: str
+    classification: str
 
 class WavelengthSet(BaseModel):
-    """A collection of bands for a single obs_id."""
-    obs_id: str = Field(description="The unique observation ID")
+    obs_id: str
     ra: float
     dec: float
-    bands: List[BandDetail] = Field(description="List of available bands, sorted by wavelength")
+    bands: List[BandDetail]
 
 class WavelengthResponse(BaseModel):
-    """The response for GET /api/v1/observations/wavelengths"""
-    sets: List[WavelengthSet] = Field(description="List of valid multi-band observations found")
+    sets: List[WavelengthSet]
     provenance: ProvenanceInfo

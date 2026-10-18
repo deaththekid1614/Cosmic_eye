@@ -5,6 +5,8 @@ import HomePage from './routes/HomePage';
 import ExplorePage from './routes/ExplorePage';
 import WavelengthsPage from './routes/WavelengthsPage';
 import LearnPage from './routes/LearnPage';
+import AISearchPage from './routes/AISearchPage';
+import BrowsePage from './routes/BrowsePage';
 
 export default function App() {
   return (
@@ -18,7 +20,8 @@ export default function App() {
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/wavelengths" element={<WavelengthsPage />} />
             <Route path="/learn" element={<LearnPage />} />
-            {/* Catch-all to redirect old links back to home */}
+            <Route path="/ai-search" element={<AISearchPage />} />
+            <Route path="/browse" element={<BrowsePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
