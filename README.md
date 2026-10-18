@@ -236,16 +236,4 @@ Generated files and local environments such as `frontend/node_modules/`, `fronte
 
 Run the configured checks from the repository root after setting up dependencies:
 
-```bash
-./scripts/check.sh
 ```
-
-The script runs Ruff and pytest in the backend virtual environment, then the frontend TypeScript type check. To also create a production frontend bundle, run `cd frontend && npm run build`.
-
-The script uses `set -e`, so it stops at the first failing stage. If Ruff reports errors, pytest and the frontend type check have not run yet. A Ruff failure reports code-style and static lint findings; it does not by itself indicate that the site failed to start or that its API behavior is incorrect.
-
-## License and attribution
-
-The project source code is licensed under the MIT License; see [LICENSE](LICENSE). NASA/IPAC IRSA data products, SIMBAD data, bundled astronomical catalogs, and third-party imagery are not relicensed by that file. Follow the applicable source terms and attribution guidance when reusing them. Cosmic Eye is not affiliated with or endorsed by NASA, JPL, Caltech, or the SPHEREx mission team.
-
-For implementation details and verified data notes, see [handoffs/handoff_updated.md](handoffs/handoff_updated.md) and [docs/data_provenance.md](docs/data_provenance.md).
