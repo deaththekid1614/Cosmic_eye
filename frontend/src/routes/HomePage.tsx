@@ -25,7 +25,7 @@ export default function HomePage() {
         <div className="hero-banner">
           <div className="hero-text">
             <h1>Welcome to<br/><span className="gradient-text">Cosmic Eye</span></h1>
-            <p>Real SPHEREx data. Simple tools.<br/>Big discoveries.</p>
+            <p>Real SPHEREx data. Simple tools.<br/>A wider view of the universe.</p>
             <p className="hero-sub">Explore the sky, compare observations across time and wavelengths, and find interesting changes in the universe.</p>
             <div className="hero-actions">
               <Link to="/explore" className="glow-btn">Start Exploring <ArrowRight size={18} /></Link>
@@ -38,13 +38,13 @@ export default function HomePage() {
           <Link to="/ai-search" className="feature-card">
             <div className="icon-box blue"><Sparkles size={20} /></div>
             <h3>AI Search</h3>
-            <p>Search the entire universe using natural language.</p>
+            <p>Look up a known object and find nearby SPHEREx observations.</p>
             <span className="link-text">Go to AI <ArrowRight size={14}/></span>
           </Link>
           <Link to="/browse" className="feature-card">
             <div className="icon-box green"><Calendar size={20} /></div>
             <h3>Browse</h3>
-            <p>Find the most recent observations from the mission.</p>
+            <p>Explore popular regions and a sample of archive observations.</p>
             <span className="link-text">Go to Browse <ArrowRight size={14}/></span>
           </Link>
           <Link to="/rgb" className="feature-card">
@@ -56,11 +56,12 @@ export default function HomePage() {
         </div>
 
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
+          <div className="section-heading">
             <div>
-              <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Popular Regions</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Explore some of the most interesting regions in the sky</p>
+              <h2>Popular Regions</h2>
+              <p>Choose a destination and explore the archive around it.</p>
             </div>
+            <Link to="/popular-regions" className="section-link">View all <ArrowRight size={15} /></Link>
           </div>
           <div className="popular-regions-grid">
             {featured.map((target) => (
@@ -103,12 +104,12 @@ export default function HomePage() {
         {featured.length > 0 && (
           <div className="right-panel">
             <h3>Featured Observation</h3>
-            <Link to="/explore" state={{ ra: featured[0].ra.toString(), dec: featured[0].dec.toString() }} style={{ display: 'block', marginTop: '12px', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
-              <img src={FALLBACK_IMAGES[featured[0].id] || featured[0].image_url} alt="Featured" style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
-              <div style={{ padding: '12px 0 0' }}>
-                <strong style={{ display: 'block', fontSize: '0.95rem' }}>{featured[0].name}</strong>
-                <p style={{ margin: '4px 0 12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{featured[0].type} • RA {featured[0].ra}° Dec {featured[0].dec}°</p>
-                <button className="secondary-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', background: 'rgba(79, 140, 255, 0.1)', color: 'var(--accent-blue)', border: '1px solid rgba(79,140,255,0.3)' }}>View Details <ArrowRight size={14} /></button>
+            <Link to="/explore" state={{ ra: featured[0].ra.toString(), dec: featured[0].dec.toString() }} className="featured-observation">
+              <img src={FALLBACK_IMAGES[featured[0].id] || featured[0].image_url} alt={featured[0].name} />
+              <div className="featured-observation-copy">
+                <strong>{featured[0].name}</strong>
+                <p>{featured[0].type} <span aria-hidden="true">·</span> RA {featured[0].ra}° <span aria-hidden="true">·</span> Dec {featured[0].dec}°</p>
+                <span className="featured-observation-action">View observation <ArrowRight size={14} /></span>
               </div>
             </Link>
           </div>

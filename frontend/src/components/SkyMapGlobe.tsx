@@ -7,15 +7,22 @@ type Props = {
   targets: FeaturedTarget[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  autoRotate: boolean;
   resetSignal: number;
   showGrid: boolean;
+  showConstellations: boolean;
   focusedTarget: { ra: number; dec: number } | null;
   onHover: (id: string | null) => void;
 };
 
 const SPHERE_RADIUS = 48;
 type BrightStar = [number, number, number, number];
+const CONSTELLATION_PATHS = [
+  { name: 'Orion', paths: [[27989, 25336, 25930, 26311, 26727, 27366, 24436, 27989]] },
+  { name: 'Ursa Major', paths: [[54061, 53910, 58001, 59774, 54061], [59774, 62956, 65378, 67301]] },
+  { name: 'Cassiopeia', paths: [[746, 3179, 4427, 6686, 8886]] },
+  { name: 'Cygnus', paths: [[102098, 100453, 9640], [100453, 102488, 97165]] },
+  { name: 'Leo', paths: [[49669, 50583, 54879, 54872, 50335, 49669]] },
+];
 
 function skyPosition(raDegrees: number, decDegrees: number, radius = SPHERE_RADIUS) {
   const ra = THREE.MathUtils.degToRad(raDegrees);
@@ -47,18 +54,53 @@ function addArc(group: THREE.Group, points: THREE.Vector3[], color: number, opac
   group.add(line);
 }
 
-export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate, resetSignal, showGrid, focusedTarget, onHover }: Props) {
+function addConstellationLabel(group: THREE.Group, name: string, positions: THREE.Vector3[]) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 80;
+  const context = canvas.getContext('2d');
+  if (!context || positions.length === 0) return;
+
+  context.beginPath();
+  context.roundRect(3, 3, 314, 74, 18);
+  context.fillStyle = 'rgba(7, 13, 24, 0.9)';
+  context.fill();
+  context.strokeStyle = 'rgba(241, 201, 138, 0.78)';
+  context.lineWidth = 3;
+  context.stroke();
+  context.beginPath();
+  context.arc(34, 40, 7, 0, Math.PI * 2);
+  context.fillStyle = '#f1c98a';
+  context.shadowColor = 'rgba(241, 201, 138, 0.8)';
+  context.shadowBlur = 12;
+  context.fill();
+  context.shadowBlur = 0;
+  context.fillStyle = '#f5ead7';
+  context.font = '600 30px Inter, sans-serif';
+  context.textBaseline = 'middle';
+  context.fillText(name, 56, 41);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: true }));
+  const center = positions.reduce((sum, position) => sum.add(position), new THREE.Vector3()).normalize();
+  label.position.copy(center.multiplyScalar(SPHERE_RADIUS - 0.55));
+  label.scale.set(8.2, 2.05, 1);
+  label.renderOrder = 5;
+  group.add(label);
+}
+
+export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal, showGrid, showConstellations, focusedTarget, onHover }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const markerMap = useRef(new Map<string, THREE.Mesh>());
   const viewRef = useRef<{ reset: () => void; focus: (ra: number, dec: number) => void } | null>(null);
   const gridRef = useRef<THREE.Group | null>(null);
+  const constellationsRef = useRef<THREE.Group | null>(null);
   const hoveredRef = useRef<string | null>(null);
-  const autoRotateRef = useRef(autoRotate);
   const selectRef = useRef(onSelect);
   const hoverRef = useRef(onHover);
   selectRef.current = onSelect;
   hoverRef.current = onHover;
-  autoRotateRef.current = autoRotate;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -106,8 +148,10 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate,
     // Real bright-star directions from the Hipparcos catalog form the subtle sky backdrop.
     const starPositions: number[] = [];
     const brightPositions: number[] = [];
-    for (const [, ra, dec, magnitude] of brightStars as BrightStar[]) {
+    const starPositionsById = new Map<number, THREE.Vector3>();
+    for (const [hip, ra, dec, magnitude] of brightStars as BrightStar[]) {
       const pos = skyPosition(ra, dec, SPHERE_RADIUS - 0.35);
+      starPositionsById.set(hip, pos);
       if (magnitude < 2.2) brightPositions.push(pos.x, pos.y, pos.z);
       else starPositions.push(pos.x, pos.y, pos.z);
     }
@@ -121,6 +165,23 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate,
     brightGeometry.setAttribute('position', new THREE.Float32BufferAttribute(brightPositions, 3));
     const brightPoints = new THREE.Points(brightGeometry, new THREE.PointsMaterial({ color: 0xffe9c1, size: 0.28, sizeAttenuation: true, transparent: true, opacity: 0.98, depthWrite: false }));
     globe.add(brightPoints);
+
+    const constellations = new THREE.Group();
+    constellations.visible = showConstellations;
+    constellationsRef.current = constellations;
+    for (const constellation of CONSTELLATION_PATHS) {
+      const constellationStars = new Map<number, THREE.Vector3>();
+      for (const path of constellation.paths) {
+        const points = path.map((hip) => {
+          const position = starPositionsById.get(hip);
+          if (position) constellationStars.set(hip, position);
+          return position;
+        }).filter((point): point is THREE.Vector3 => Boolean(point));
+        if (points.length > 1) addArc(constellations, points.map((point) => point.clone().normalize().multiplyScalar(SPHERE_RADIUS - 0.12)), 0xf1c98a, 0.56);
+      }
+      addConstellationLabel(constellations, constellation.name, [...constellationStars.values()]);
+    }
+    globe.add(constellations);
 
     const markers = new THREE.Group();
     globe.add(markers);
@@ -257,7 +318,7 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate,
         yaw += yawDifference * Math.min(1, delta * 3.2);
         pitch += (focusAngles.pitch - pitch) * Math.min(1, delta * 3.2);
         if (Math.abs(yawDifference) < 0.002 && Math.abs(focusAngles.pitch - pitch) < 0.002) focusAngles = null;
-      } else if (autoRotateRef.current && !dragging) {
+      } else if (!dragging) {
         yaw += delta * 0.055;
       }
       camera.rotation.set(pitch, Math.PI + yaw, 0, 'YXZ');
@@ -276,8 +337,12 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate,
       renderer.domElement.removeEventListener('wheel', onWheel);
       viewRef.current = null;
       gridRef.current = null;
+      constellationsRef.current = null;
       scene.traverse((object) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) {
+        if (object instanceof THREE.Sprite) {
+          object.material.map?.dispose();
+          object.material.dispose();
+        } else if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) {
           object.geometry.dispose();
           const materials = Array.isArray(object.material) ? object.material : [object.material];
           materials.forEach((material) => material.dispose());
@@ -293,6 +358,10 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, autoRotate,
   useEffect(() => {
     if (gridRef.current) gridRef.current.visible = showGrid;
   }, [showGrid]);
+
+  useEffect(() => {
+    if (constellationsRef.current) constellationsRef.current.visible = showConstellations;
+  }, [showConstellations]);
 
   useEffect(() => {
     if (!resetSignal) return;

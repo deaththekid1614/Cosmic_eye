@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowUpRight, Check, Globe2, Loader2, Pause, Play, Rotate3D, RotateCcw, Satellite, Search, X } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, Check, Globe2, Loader2, Rotate3D, RotateCcw, Satellite, Search, Sparkles, X } from 'lucide-react';
 import SkyMapGlobe from '../components/SkyMapGlobe';
 import { getFeaturedTargets, searchObservations } from '../api/observations';
 import { fetchJson } from '../api/client';
@@ -22,10 +22,10 @@ export default function SkyMapPage() {
   const [targets, setTargets] = useState<FeaturedTarget[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
-  const [autoRotate, setAutoRotate] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
+  const [showConstellations, setShowConstellations] = useState(true);
   const [targetQuery, setTargetQuery] = useState('');
   const [listQuery, setListQuery] = useState('');
   const [addingTarget, setAddingTarget] = useState(false);
@@ -131,15 +131,13 @@ export default function SkyMapPage() {
               <span className="skymap-gesture-help"><Rotate3D size={16} /> Drag to look around · Scroll to zoom · Select a target</span>
               <div className="skymap-map-actions">
                 <button type="button" className={showGrid ? 'skymap-map-action active' : 'skymap-map-action'} onClick={() => setShowGrid((visible) => !visible)} title="Toggle the RA/Dec coordinate grid">{showGrid ? <Check size={14} /> : <Globe2 size={14} />}Grid</button>
-                <button type="button" className={autoRotate ? 'skymap-map-action active' : 'skymap-map-action'} onClick={() => setAutoRotate((rotating) => !rotating)} title={autoRotate ? 'Pause automatic rotation' : 'Resume automatic rotation'}>
-                  {autoRotate ? <Pause size={14} /> : <Play size={14} />}{autoRotate ? 'Pause' : 'Spin'}
-                </button>
+                <button type="button" className={showConstellations ? 'skymap-map-action active' : 'skymap-map-action'} onClick={() => setShowConstellations((visible) => !visible)} title="Toggle familiar constellation outlines">{showConstellations ? <Check size={14} /> : <Sparkles size={14} />}Constellations</button>
                 <button type="button" className="skymap-map-action" onClick={() => setResetSignal((value) => value + 1)} title="Reset globe orientation and zoom"><RotateCcw size={14} /> Reset</button>
                 <span className="skymap-coordinate-system">ICRS / J2000</span>
               </div>
             </div>
             <div className="skymap-globe-wrap">
-              {!loading && !error && <SkyMapGlobe targets={visibleTargets} selectedId={selectedId} onSelect={selectTarget} autoRotate={autoRotate} resetSignal={resetSignal} showGrid={showGrid} focusedTarget={selectedTarget ? { ra: selectedTarget.ra, dec: selectedTarget.dec } : null} onHover={setHoveredId} />}
+              {!loading && !error && <SkyMapGlobe targets={visibleTargets} selectedId={selectedId} onSelect={selectTarget} resetSignal={resetSignal} showGrid={showGrid} showConstellations={showConstellations} focusedTarget={selectedTarget ? { ra: selectedTarget.ra, dec: selectedTarget.dec } : null} onHover={setHoveredId} />}
               {loading && <div className="skymap-loading"><Loader2 size={24} className="spin" /> Loading observed targets…</div>}
               {error && <div className="skymap-error"><AlertCircle size={20} />{error}</div>}
               {!loading && !error && <>
@@ -149,11 +147,12 @@ export default function SkyMapPage() {
             </div>
             <div className="skymap-legend">
               <span><i className="legend-dot guide-star" /> Hipparcos guide stars</span>
+              <span><i className="legend-constellation-line" /> Orion · Ursa Major · Cassiopeia · Cygnus · Leo</span>
               <span><i className="legend-dot nebula" /> Nebulae & star-forming regions</span>
               <span><i className="legend-dot galaxy" /> Galaxies</span>
               <span><i className="legend-dot other" /> Other targets</span>
             </div>
-            <p className="skymap-science-note">You are viewing the sky from the SPHEREx observer point. Colored target markers have SPHEREx image coverage; faint white stars are Hipparcos guide stars. RA/Dec gives direction only, not object distance or size.</p>
+            <p className="skymap-science-note">You are viewing the sky from the SPHEREx observer point. Gold lines connect bright Hipparcos stars into familiar constellation outlines; they are visual guides. Colored target markers have SPHEREx image coverage. RA/Dec gives direction only, not object distance or size.</p>
           </div>
 
           <aside className="skymap-target-panel">

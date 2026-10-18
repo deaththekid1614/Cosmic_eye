@@ -25,8 +25,11 @@ ul { list-style: none; }
 .app-layout { display: flex; flex-direction: column; height: 100vh; }
 .top-nav { height: 64px; background: rgba(13, 19, 38, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 50; flex-shrink: 0; }
 .top-nav-brand { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.5px; }
-.logo-circle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent-blue); position: relative; }
-.logo-circle::after { content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: var(--accent-blue); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--accent-blue); }
+.brand-mark { width: 35px; height: 35px; flex: 0 0 35px; overflow: visible; filter: drop-shadow(0 0 10px rgba(101,164,255,.24)); transition: transform .25s ease, filter .25s ease; }
+.brand-mark-orbit { fill: rgba(83,139,229,.07); stroke: url(#cosmic-mark-gradient); stroke-width: 1.35; stroke-dasharray: 86 22; transform: rotate(-28deg); transform-origin: center; }
+.brand-mark-eye { fill: rgba(93,153,235,.12); stroke: url(#cosmic-mark-gradient); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.brand-mark-core { fill: url(#cosmic-mark-core); stroke: rgba(220,242,255,.8); stroke-width: .65; filter: drop-shadow(0 0 3px rgba(122,190,255,.9)); }
+.brand-mark-spark { fill: none; stroke: #c5a6ff; stroke-width: 1.5; stroke-linecap: round; }
 .top-nav-links { display: flex; gap: 8px; }
 .top-nav-links .nav-link { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
 .top-nav-links .nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
@@ -231,7 +234,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .top-nav { background: rgba(10, 16, 29, .92); padding-inline: clamp(16px, 3vw, 32px); }
 .top-nav-links { display: none; }
 .top-nav-brand { letter-spacing: -.04em; }
-.logo-circle { box-shadow: 0 0 22px rgba(114,167,255,.14); }
+.top-nav-brand:hover .brand-mark { transform: rotate(-7deg) scale(1.05); filter: drop-shadow(0 0 13px rgba(134,168,255,.42)); }
 .top-nav-right { padding: 7px 11px; border: 1px solid var(--border-color); border-radius: 9px; background: rgba(255,255,255,.025); }
 .sidebar { width: 224px; padding: 22px 12px; background: #0d1522; }
 .side-nav { gap: 5px; }
@@ -435,7 +438,7 @@ button:disabled { opacity: .65; cursor: wait; }
   .browse-regions-grid { grid-template-columns: 1fr; }
   .browse-region-image-wrap { height: 210px; }
   .top-nav-brand { gap: 8px; font-size: 1.03rem; }
-  .logo-circle { width: 25px; height: 25px; }
+  .brand-mark { width: 31px; height: 31px; flex-basis: 31px; }
   .top-nav-right { gap: 0; padding: 6px 8px; }
   .top-nav-right strong { font-size: .68rem; }
   .hero-banner { min-height: 350px; border-radius: 13px; }
@@ -449,6 +452,58 @@ button:disabled { opacity: .65; cursor: wait; }
   .explore-header { align-items: flex-start; }
   .explore-header > div, .explore-header > button { width: 100%; }
   .explore-header button { justify-content: center; }
+}
+
+/* Shared finishing touches */
+html { scroll-behavior: smooth; }
+body { background-image: radial-gradient(ellipse at 52% -24%, rgba(47,83,143,.17), transparent 56%); }
+.main-content { background-color: transparent; }
+.top-nav { box-shadow: 0 8px 28px rgba(0,0,0,.12); }
+.top-nav-brand { color: var(--text-main); transition: opacity .18s ease; }
+.top-nav-brand:hover { opacity: .84; }
+.top-nav-brand:focus-visible { border-radius: 8px; }
+.top-nav-right strong { color: var(--text-main); }
+.side-link { position: relative; }
+.side-link.active { box-shadow: inset 0 0 0 1px rgba(114,167,255,.08); }
+.right-panel, .feature-card, .browse-region-card, .observation-card, .color-controls-panel, .color-queue {
+  box-shadow: 0 12px 34px rgba(0,0,0,.14);
+}
+.feature-card, .q-link, .secondary-btn, .glow-btn, .browse-tab, .region-card, .side-link {
+  transition-timing-function: cubic-bezier(.2,.7,.2,1);
+}
+.feature-card:focus-visible, .q-link:focus-visible, .region-card:focus-visible, .featured-observation:focus-visible {
+  outline: 2px solid #8ab8ff;
+  outline-offset: 3px;
+}
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.section-heading h2 { margin: 0; font-size: 1.22rem; letter-spacing: -.025em; }
+.section-heading p { margin-top: 4px; color: var(--text-muted); font-size: .85rem; line-height: 1.5; }
+.section-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; padding: 7px 0 5px 10px; color: #8db7ff; font-size: .8rem; font-weight: 650; }
+.section-link:hover { color: #c5dcff; }
+.featured-observation { display: block; margin-top: 12px; overflow: hidden; border: 1px solid rgba(130,160,200,.14); border-radius: 10px; background: rgba(5,10,18,.28); transition: border-color .18s ease, background .18s ease; }
+.featured-observation:hover { border-color: rgba(114,167,255,.42); background: rgba(79,140,255,.045); }
+.featured-observation > img { display: block; width: 100%; height: 142px; object-fit: cover; background: #080d17; }
+.featured-observation-copy { padding: 13px; }
+.featured-observation-copy > strong { display: block; font-size: .95rem; }
+.featured-observation-copy > p { margin: 5px 0 13px; color: var(--text-muted); font-size: .75rem; line-height: 1.5; }
+.featured-observation-action { display: flex; min-height: 37px; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(79,140,255,.3); border-radius: 8px; background: rgba(79,140,255,.09); color: #91b8ff; font-size: .79rem; font-weight: 650; }
+.featured-observation:hover .featured-observation-action { background: rgba(79,140,255,.16); }
+.facts-list li { line-height: 1.45; }
+.input-group input, select, textarea { color-scheme: dark; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 768px) {
+  .sidebar-card { display: none; }
+  .side-nav { width: 100%; }
+  .main-content { overscroll-behavior: contain; }
+  .featured-observation > img { height: 180px; }
+}
+@media (max-width: 520px) {
+  .section-heading { align-items: flex-start; }
+  .section-link { margin-top: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -510,6 +565,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .legend-dot.galaxy, .skymap-target-marker.galaxy { color: #75b7ff; background: #75b7ff; }
 .legend-dot.other, .skymap-target-marker.other { color: #7ee7d3; background: #7ee7d3; }
 .legend-dot.guide-star { width: 5px; height: 5px; flex-basis: 5px; color: #dbe9ff; background: #dbe9ff; box-shadow: 0 0 6px rgba(200,225,255,.8); }
+.legend-constellation-line { width: 14px; height: 2px; flex: 0 0 14px; border-radius: 2px; background: #f1c98a; box-shadow: 0 0 7px rgba(241,201,138,.55); }
 .skymap-science-note { padding: 10px 17px 15px; color: var(--text-muted); font-size: .72rem; line-height: 1.55; }
 .skymap-target-panel { display: flex; max-height: min(820px, calc(100vh - 230px)); flex-direction: column; }
 .skymap-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 17px 13px; }
@@ -566,7 +622,7 @@ button:disabled { opacity: .65; cursor: wait; }
   .skymap-target-count { padding: 8px 10px; }
   .skymap-toolbar { align-items: flex-start; font-size: .7rem; }
   .skymap-toolbar { flex-direction: column; }
-  .skymap-map-actions { width: 100%; justify-content: flex-end; }
+  .skymap-map-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
   .skymap-coordinate-system { flex: 0 0 auto; }
   .skymap-globe-wrap { min-height: 300px; }
   .skymap-legend { gap: 8px 12px; font-size: .66rem; }
