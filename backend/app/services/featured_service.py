@@ -1,12 +1,18 @@
+import json
+from pathlib import Path
 from typing import List, Dict
+
+_MESSIER_PATH = Path(__file__).resolve().parents[1] / "catalogs" / "messier_targets.json"
+with _MESSIER_PATH.open(encoding="utf-8") as _catalog_file:
+    _MESSIER_TARGETS = json.load(_catalog_file)
 
 def get_featured_targets() -> List[Dict]:
     """
-    Returns a curated list of famous objects.
-    We use static high-res images here so the Home Page loads instantly.
-    When clicked, it passes the real RA/Dec to the Explore page to fetch real NASA data.
+    Return famous targets plus Messier catalog objects with confirmed archive coverage.
+    Coordinates come from SIMBAD; the additional catalog positions were checked against
+    SPHEREx QR2 level-2 image footprints and are kept as a compact static index.
     """
-    return [
+    curated = [
         {
             "id": "orion",
             "name": "Orion Nebula (M42)",
@@ -32,7 +38,7 @@ def get_featured_targets() -> List[Dict]:
             "ra": 283.39,
             "dec": 33.02,
             "description": "A glowing shell of ionized gas ejected from a dying star.",
-            "image_url": "https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=800&auto=format&fit=crop"
+            "image_url": "https://science.nasa.gov/wp-content/uploads/2023/04/ring-nebula-full_jpg-jpg.webp"
         },
         {
             "id": "carina",
@@ -51,5 +57,96 @@ def get_featured_targets() -> List[Dict]:
             "dec": -2.46,
             "description": "A cold, dark cloud of gas and dust silhouetted against a glowing background.",
             "image_url": "https://images.unsplash.com/photo-1465101162946-4377e57745c3?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "milky-way",
+            "name": "Milky Way · Galactic Center",
+            "type": "Star-forming region",
+            "ra": 266.4168,
+            "dec": -29.0078,
+            "description": "A dense, infrared-bright view toward the center of our galaxy.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "pleiades",
+            "name": "Pleiades (M45)",
+            "type": "Open star cluster",
+            "ra": 56.75,
+            "dec": 24.1167,
+            "description": "A nearby cluster of young stars surrounded by reflection dust.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "crab",
+            "name": "Crab Nebula (M1)",
+            "type": "Supernova remnant",
+            "ra": 83.63,
+            "dec": 22.0145,
+            "description": "The expanding debris cloud left by a supernova recorded in 1054.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "helix",
+            "name": "Helix Nebula (NGC 7293)",
+            "type": "Planetary nebula",
+            "ra": 337.409,
+            "dec": -20.837,
+            "description": "A nearby shell of gas released by a Sun-like star near the end of its life.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "lagoon",
+            "name": "Lagoon Nebula (M8)",
+            "type": "Star-forming nebula",
+            "ra": 270.9,
+            "dec": -24.38,
+            "description": "A large cloud of gas and dust where new stars are forming.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "eagle",
+            "name": "Eagle Nebula (M16)",
+            "type": "Star-forming nebula",
+            "ra": 274.7,
+            "dec": -13.8,
+            "description": "A star-forming cloud that includes the Pillars of Creation.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "whirlpool",
+            "name": "Whirlpool Galaxy (M51)",
+            "type": "Spiral galaxy",
+            "ra": 202.47,
+            "dec": 47.195,
+            "description": "A face-on spiral galaxy interacting with a smaller companion galaxy.",
+            "image_url": "https://images.unsplash.com/photo-1543722530-d2c3201371e7?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "rosette",
+            "name": "Rosette Nebula (NGC 2237)",
+            "type": "Star-forming nebula",
+            "ra": 97.97,
+            "dec": 4.98,
+            "description": "A broad ring of gas and dust shaped by a cluster of young stars.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "north-america",
+            "name": "North America Nebula (NGC 7000)",
+            "type": "Emission nebula",
+            "ra": 314.7,
+            "dec": 44.5,
+            "description": "A large hydrogen-rich cloud in the constellation Cygnus.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            "id": "cygnus-x",
+            "name": "Cygnus X",
+            "type": "Star-forming complex",
+            "ra": 308.0,
+            "dec": 41.0,
+            "description": "A massive complex of star-forming clouds in the Milky Way.",
+            "image_url": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop"
         }
     ]
+    return curated + _MESSIER_TARGETS

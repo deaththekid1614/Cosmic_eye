@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Activity, BookOpen, Sparkles, Calendar, Palette } from 'lucide-react';
+import { Home, Search, BookOpen, Sparkles, Calendar, Palette, Globe2 } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/ai-search', label: 'AI Search', icon: Sparkles },
   { to: '/browse', label: 'Browse', icon: Calendar },
+  { to: '/skymap', label: 'Sky Map', icon: Globe2 },
   { to: '/explore', label: 'Manual', icon: Search },
-  { to: '/wavelengths', label: 'Wavelengths', icon: Activity },
-  { to: '/rgb', label: 'True Color', icon: Palette }, // <-- ADDED
+  { to: '/rgb', label: 'Color Lab', icon: Palette },
   { to: '/learn', label: 'Learn', icon: BookOpen },
 ];
 

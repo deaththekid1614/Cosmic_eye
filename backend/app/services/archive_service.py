@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from collections import defaultdict
 from astropy.time import Time
 from app.adapters.irsa_spherex import search_observations
-from app.services.ml_service import xgb_classify
+from app.services.ml_service import describe_wavelength
 from app.schemas.observation import (
     Observation, ObservationListResponse, QueryInfo, ProvenanceInfo,
     WavelengthSet, BandDetail, WavelengthResponse
@@ -22,7 +22,7 @@ def fetch_normalized_observations(ra: float, dec: float, radius_deg: float, coll
             date_str = t.iso
         except Exception:
             date_str = "Unknown date"
-        ml_class = xgb_classify(center_um, float(row.get("em_res_power", 40.0)))
+        ml_class = describe_wavelength(center_um)
         valid_rows.append(Observation(
             id=str(row["obs_id"]), title=f"SPHEREx observation · Band {em_min_um:.1f}-{em_max_um:.1f} µm",
             observed_at=date_str, band=f"{em_min_um:.2f}–{em_max_um:.2f} µm",
@@ -54,7 +54,7 @@ def fetch_wavelength_sets(ra: float, dec: float, radius_deg: float, collection: 
         center_um = (em_min_um + em_max_um) / 2
         rounded_center = round(center_um, 2)
         
-        ml_class = xgb_classify(center_um, float(row.get("em_res_power", 40.0)))
+        ml_class = describe_wavelength(center_um)
         
         band_obj = BandDetail(
             band_name=f"{em_min_um:.2f}–{em_max_um:.2f} µm",

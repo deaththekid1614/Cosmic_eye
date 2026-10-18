@@ -84,41 +84,49 @@ def generate_rgb_preview(urls: List[str]) -> bytes:
         print(f"RGB Generation Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to build RGB composite: {str(e)}")
 
-def generate_preview(access_url: str) -> bytes:
-    """Fallback: Single band magma preview."""
+def generate_preview(access_url: str, palette: str = "inferno") -> bytes:
+    """Render a single infrared band with a selectable false-color palette."""
+    palettes = {"magma", "inferno", "plasma", "viridis", "cividis"}
+    if palette not in palettes:
+        raise HTTPException(status_code=400, detail="Unsupported color palette.")
+
     settings.preview_cache_dir.mkdir(parents=True, exist_ok=True)
     url_hash = hashlib.md5(access_url.encode("utf-8")).hexdigest()
-    cache_path = settings.preview_cache_dir / f"{url_hash}.jpg"
+    cache_name = f"{url_hash}_{palette}.jpg"
+    cache_path = settings.preview_cache_dir / cache_name
+    normalized_cache_path = settings.preview_cache_dir / f"{url_hash}_normalized.npy"
 
     if cache_path.exists():
         with open(cache_path, "rb") as f:
             return f.read()
 
     try:
-        resp = requests.get(access_url, timeout=60)
-        resp.raise_for_status()
-        
-        with fits.open(io.BytesIO(resp.content)) as hdul:
-            data = hdul[1].data
-            if len(hdul) > 4 and hdul[4].name == "ZODI":
-                data = data - hdul[4].data
-                
-            norm = ImageNormalize(data, interval=ZScaleInterval())
-            normalized_data = norm(data)
-            
-            colored_data = colormaps["magma"](normalized_data)[:, :, :3]
-            image_data = (colored_data * 255).astype(np.uint8)
-            
-            img = Image.fromarray(image_data)
-            img = img.resize((400, 400), Image.Resampling.LANCZOS)
-            
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=85)
-            image_bytes = buf.getvalue()
+        if normalized_cache_path.exists():
+            normalized_data = np.load(normalized_cache_path)
+        else:
+            resp = requests.get(access_url, timeout=60)
+            resp.raise_for_status()
+            with fits.open(io.BytesIO(resp.content)) as hdul:
+                data = hdul[1].data
+                if len(hdul) > 4 and hdul[4].name == "ZODI":
+                    data = data - hdul[4].data
+                norm = ImageNormalize(data, interval=ZScaleInterval())
+                normalized_data = np.asarray(norm(data), dtype=np.float32)
+            np.save(normalized_cache_path, normalized_data)
 
-            with open(cache_path, "wb") as f:
-                f.write(image_bytes)
-            return image_bytes
+        colored_data = colormaps[palette](normalized_data)[:, :, :3]
+        image_data = (colored_data * 255).astype(np.uint8)
+
+        img = Image.fromarray(image_data)
+        img = img.resize((400, 400), Image.Resampling.LANCZOS)
+
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        image_bytes = buf.getvalue()
+
+        with open(cache_path, "wb") as f:
+            f.write(image_bytes)
+        return image_bytes
 
     except requests.exceptions.Timeout:
         raise HTTPException(status_code=504, detail="NASA archive timed out.")

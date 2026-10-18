@@ -1,174 +1,143 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getWavelengthSets } from '../api/observations';
 import type { BandDetail, WavelengthSet } from '../types/observation';
-import { Loader2, AlertCircle, Sparkles, Activity } from 'lucide-react';
-import ImageSlider from '../components/ImageSlider';
+import { Activity, AlertCircle, Loader2, Palette, Sparkles } from 'lucide-react';
+import { observationPreviewUrl } from '../api/client';
+
+const palettes = [
+  { id: 'inferno', name: 'Inferno', hint: 'High contrast' },
+  { id: 'viridis', name: 'Viridis', hint: 'Easy to read' },
+  { id: 'plasma', name: 'Plasma', hint: 'Bright colors' },
+  { id: 'cividis', name: 'Cividis', hint: 'Color-blind friendly' },
+  { id: 'magma', name: 'Magma', hint: 'Soft contrast' },
+];
 
 export default function RGBExplorerPage() {
   const location = useLocation();
   const [ra, setRa] = useState('10.68');
   const [dec, setDec] = useState('41.27');
-  
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
   const [allBands, setAllBands] = useState<BandDetail[]>([]);
   const [sets, setSets] = useState<WavelengthSet[]>([]);
   const [selectedSet, setSelectedSet] = useState<WavelengthSet | null>(null);
+  const [selectedBand, setSelectedBand] = useState<BandDetail | null>(null);
+  const [palette, setPalette] = useState('inferno');
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = async (searchRa: string, searchDec: string) => {
-    setLoading(true); setError(null); setHasSearched(true);
-    setAllBands([]); setSets([]); setSelectedSet(null);
+  const handleSearch = async (searchRa: string, searchDec: string, target?: { obsId?: string; wavelength?: number }) => {
+    setLoading(true);
+    setError(null);
+    setImageError(false);
+    setHasSearched(true);
+    setAllBands([]);
+    setSets([]);
+    setSelectedSet(null);
+    setSelectedBand(null);
 
     try {
       const data = await getWavelengthSets(Number(searchRa), Number(searchDec), 0.01);
       setAllBands(data.all_bands);
       setSets(data.sets);
-      
-      if (data.all_bands.length >= 3) {
-        setImageLoading(true);
-      }
-      if (data.sets.length > 0) {
-        setSelectedSet(data.sets[0]);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch wavelength data.');
+      const firstSet = data.sets[0] ?? null;
+      const chosenSet = target?.obsId ? data.sets.find((set) => set.obs_id === target.obsId) ?? firstSet : firstSet;
+      const availableBands = chosenSet?.bands.length ? chosenSet.bands : data.all_bands;
+      const selected = target?.wavelength != null && availableBands.length
+        ? availableBands.reduce((closest, band) => Math.abs(band.wavelength_um - target.wavelength!) < Math.abs(closest.wavelength_um - target.wavelength!) ? band : closest)
+        : availableBands[0] ?? null;
+      setSelectedSet(chosenSet);
+      setSelectedBand(selected);
+      setImageLoading(Boolean(selected));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load observations. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (location.state?.ra && location.state?.dec) {
+    if (location.state?.ra != null && location.state?.dec != null) {
       setRa(location.state.ra);
       setDec(location.state.dec);
-      handleSearch(location.state.ra, location.state.dec);
+      handleSearch(location.state.ra, location.state.dec, { obsId: location.state.obsId, wavelength: location.state.wavelength });
     }
   }, [location.state]);
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
     handleSearch(ra, dec);
   };
 
-  const hasEnoughBands = allBands.length >= 3;
+  const chooseBand = (band: BandDetail) => {
+    setSelectedBand(band);
+    setImageError(false);
+    setImageLoading(true);
+  };
 
-  // Base image uses the selected observation's first band, falling back to the global first band
-  const currentBaseUrl = selectedSet?.bands[0]?.source_url || allBands[0]?.source_url;
-  
-  const singleUrl = currentBaseUrl
-    ? `http://localhost:8000/api/v1/observations/preview?url=${encodeURIComponent(currentBaseUrl)}`
-    : '';
-
-  const rgbUrl = hasEnoughBands
-    ? `http://localhost:8000/api/v1/observations/preview/rgb?url1=${encodeURIComponent(allBands[0].source_url)}&url2=${encodeURIComponent(allBands[Math.floor(allBands.length/2)].source_url)}&url3=${encodeURIComponent(allBands[allBands.length-1].source_url)}`
-    : '';
+  const previewUrl = selectedBand ? observationPreviewUrl(selectedBand.source_url, palette) : '';
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px' }}>
+    <section className="tool-page color-page" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px' }}>
       <div className="explore-header">
-        <h1>True-Color Reveal</h1>
-        <p>Drag the slider to reveal the hidden RGB colors of the universe.</p>
+        <div>
+          <span className="eyebrow">MAKE INFRARED DATA EASIER TO SEE</span>
+          <h1>Color Lab</h1>
+          <p>Choose a wavelength and a color palette. One image loads at a time.</p>
+        </div>
       </div>
 
-      <form onSubmit={onSubmit} className="search-form" style={{ marginBottom: '24px' }}>
-        <div className="input-group"><label>RA (degrees)</label><input type="number" step="any" value={ra} onChange={(e) => setRa(e.target.value)} required /></div>
-        <div className="input-group"><label>Dec (degrees)</label><input type="number" step="any" value={dec} onChange={(e) => setDec(e.target.value)} required /></div>
-        <div className="form-actions"><button type="submit" className="glow-btn" disabled={loading} style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px' }}>{loading ? 'Searching...' : 'Generate RGB'}</button></div>
+      <form onSubmit={onSubmit} className="search-form color-search-form">
+        <div className="input-group"><label htmlFor="color-ra">RA (degrees)</label><input id="color-ra" type="number" step="any" min="0" max="360" value={ra} onChange={(event) => setRa(event.target.value)} required /></div>
+        <div className="input-group"><label htmlFor="color-dec">Dec (degrees)</label><input id="color-dec" type="number" step="any" min="-90" max="90" value={dec} onChange={(event) => setDec(event.target.value)} required /></div>
+        <div className="form-actions"><button type="submit" className="glow-btn" disabled={loading}>{loading ? <><Loader2 size={16} className="spin" /> Searching…</> : <><Palette size={16} /> Find image</>}</button></div>
       </form>
 
-      {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
+      {error && <div className="status-message error" role="alert"><AlertCircle size={18} />{error}</div>}
 
-      {!loading && hasSearched && !hasEnoughBands && !error && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          <AlertCircle size={32} style={{ margin: '0 auto 16px' }} />
-          <h3>Not enough bands to create a True-Color image.</h3>
-          <p>We need at least 3 different wavelengths from NASA to map to Red, Green, and Blue.</p>
-        </div>
+      {!loading && hasSearched && !allBands.length && !error && (
+        <div className="empty-state"><AlertCircle size={28} /><h2>No images found at these coordinates</h2><p>Try a nearby sky position or search for an object by name first.</p></div>
       )}
 
-      {hasEnoughBands && (
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flex: 1, minHeight: 0 }}>
-          
-          {/* LEFT SIDE: SLIDER & INFO */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-            
-            <div style={{ flex: 1, position: 'relative', background: '#000', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {imageLoading && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                  <Loader2 size={40} className="spin" color="var(--accent-blue)" />
-                  <div style={{ color: 'var(--accent-blue)', fontFamily: 'monospace', fontSize: '0.9rem', textAlign: 'center' }}>
-                    DOWNLOADING 3 FILES FROM NASA...<br/>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Takes ~1 min the first time, instant after)</span>
-                  </div>
-                </div>
-              )}
-              
-              <div style={{ width: '100%', height: '100%', maxWidth: '800px', maxHeight: '600px', margin: '0 auto' }}>
-                <ImageSlider 
-                  baseUrl={singleUrl} 
-                  overlayUrl={rgbUrl} 
-                  onImageLoad={() => setImageLoading(false)}
-                />
-              </div>
+      {selectedBand && (
+        <div className="tool-workspace color-workspace">
+          <div className="color-main">
+            <div className="color-image-frame">
+              {imageLoading && <div className="color-image-loading"><Loader2 size={34} className="spin" /><span>Preparing this band…</span><small>The first view can take a little longer while the image is cached.</small></div>}
+              {imageError ? <div className="color-image-error"><AlertCircle size={28} /><strong>Could not load this image</strong><span>Try another band or color palette.</span></div> : <img key={previewUrl} src={previewUrl} alt={`Infrared observation colored with ${palette}`} onLoad={() => setImageLoading(false)} onError={() => { setImageLoading(false); setImageError(true); }} className="color-image" />}
+              <div className="image-signal-label"><span>LOWER SIGNAL</span><span>HIGHER SIGNAL</span></div>
             </div>
 
-            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'var(--text-main)' }}>
-                  <Sparkles size={18} color="var(--accent-blue)" /> True-Color Composite
-                </h3>
-                <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  Combining shortest (Blue), middle (Green), and longest (Red) wavelengths.
-                </p>
+            <div className="color-controls-panel">
+              <div className="color-control-heading"><div><h2><Sparkles size={18} /> Color palette</h2><p>These colors help show signal strength. They are not the object’s actual visible-light colors.</p></div></div>
+              <div className="palette-options" role="group" aria-label="Choose color palette">
+                {palettes.map((option) => <button key={option.id} type="button" className={`palette-option palette-${option.id}${palette === option.id ? ' selected' : ''}`} aria-pressed={palette === option.id} onClick={() => { setPalette(option.id); setImageError(false); setImageLoading(true); }}><span className="palette-swatch" /><span><strong>{option.name}</strong><small>{option.hint}</small></span></button>)}
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[allBands[0], allBands[Math.floor(allBands.length/2)], allBands[allBands.length-1]].map((b, i) => (
-                  <div key={i} style={{ background: 'var(--bg-card)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                    {b.wavelength_um} µm
-                  </div>
-                ))}
-              </div>
+              <label className="band-select-label" htmlFor="color-band">Wavelength band</label>
+              <select id="color-band" value={selectedBand.wavelength_um} onChange={(event) => { const band = allBands.find((item) => item.wavelength_um === Number(event.target.value)); if (band) chooseBand(band); }}>
+                {allBands.map((band) => <option key={`${band.wavelength_um}-${band.source_url}`} value={band.wavelength_um}>{band.wavelength_um.toFixed(2)} µm · {band.classification}</option>)}
+              </select>
+              <p className="signal-explainer"><strong>How to read this:</strong> darker areas have a weaker measured signal; brighter areas have a stronger one. Changing the palette changes the display colors, not the data.</p>
             </div>
           </div>
 
-          {/* RIGHT SIDE: OBSERVATION QUEUE */}
-          <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="wavelength-card" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', marginBottom: '12px' }}>
-                <Activity size={18} /> Observation Queue
-              </h3>
-              <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
-                {sets.map((set) => (
-                  <button
-                    key={set.obs_id}
-                    onClick={() => {
-                      setSelectedSet(set);
-                      setImageLoading(true);
-                    }}
-                    style={{
-                      padding: '12px', textAlign: 'left', borderRadius: '8px', border: '1px solid',
-                      borderColor: selectedSet?.obs_id === set.obs_id ? 'var(--accent-blue)' : 'var(--border-color)',
-                      background: selectedSet?.obs_id === set.obs_id ? 'rgba(79, 140, 255, 0.1)' : 'var(--bg-card)',
-                      color: 'var(--text-main)', cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, color: selectedSet?.obs_id === set.obs_id ? 'var(--accent-blue)' : 'var(--text-main)', fontSize: '0.9rem' }}>
-                      {set.obs_id}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      {set.bands.length} bands in this scan
-                    </div>
+          <aside className="tool-rail color-rail">
+            <div className="wavelength-card color-queue">
+              <h2><Activity size={18} /> Observation queue</h2>
+              <p className="color-queue-note">Choose another scan from this sky region.</p>
+              <div className="color-queue-list">
+                {sets.map((set: WavelengthSet) => (
+                  <button key={set.obs_id} type="button" className={`color-queue-item${selectedSet?.obs_id === set.obs_id ? ' selected' : ''}`} onClick={() => { setSelectedSet(set); if (set.bands[0]) chooseBand(set.bands[0]); }}>
+                    <strong>{set.obs_id}</strong><span>{set.bands.length} wavelengths</span>
                   </button>
                 ))}
+                {!sets.length && <p className="color-queue-note">No multi-band scans found. You can still choose from all available wavelengths above.</p>}
               </div>
             </div>
-          </div>
-
+          </aside>
         </div>
       )}
     </section>

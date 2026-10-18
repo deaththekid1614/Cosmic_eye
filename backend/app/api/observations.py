@@ -4,7 +4,7 @@ from app.schemas.observation import ObservationListResponse, WavelengthResponse
 from app.services.archive_service import fetch_normalized_observations, fetch_wavelength_sets
 from app.services.preview_service import generate_preview, generate_rgb_preview
 from app.services.featured_service import get_featured_targets
-from app.services.ai_service import parse_natural_language, get_random_coordinate
+from app.services.ai_service import resolve_target, get_random_coordinate
 from app.utils.limits import validate_coordinates, validate_pagination
 from app.config import settings
 from typing import List
@@ -34,10 +34,11 @@ def get_featured():
 
 @router.get("/ai-search")
 def ai_search(q: str = Query(...)):
-    coords = parse_natural_language(q)
-    if not coords:
+    target = resolve_target(q)
+    if not target:
         raise HTTPException(status_code=404, detail="Database could not find object.")
-    return {"ra": coords[0], "dec": coords[1], "matched_query": q}
+    validate_coordinates(target["ra"], target["dec"], target["search_radius"])
+    return target
 
 @router.get("/random")
 def random_coord():
@@ -54,7 +55,7 @@ def get_rgb_preview(url1: str = Query(...), url2: str = Query(...), url3: str = 
     return Response(content=image_bytes, media_type="image/jpeg")
 
 @router.get("/preview")
-def get_preview(url: str = Query(...)):
+def get_preview(url: str = Query(...), palette: str = Query("inferno")):
     if url.startswith("cached://"):
         filename = url.replace("cached://", "")
         file_path = settings.preview_cache_dir / filename
@@ -63,5 +64,5 @@ def get_preview(url: str = Query(...)):
     if not url.startswith("https://irsa.ipac.caltech.edu"):
         raise HTTPException(status_code=400, detail="Invalid NASA URL")
     
-    image_bytes = generate_preview(url)
+    image_bytes = generate_preview(url, palette)
     return Response(content=image_bytes, media_type="image/jpeg")

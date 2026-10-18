@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Activity, ArrowRight, MapPin, Calendar, Shuffle, BookOpen, Sparkles } from 'lucide-react';
+import { ArrowRight, Calendar, Shuffle, Sparkles, Palette } from 'lucide-react';
 import { getFeaturedTargets } from '../api/observations';
 import type { FeaturedTarget } from '../types/observation';
 
 const FALLBACK_IMAGES: Record<string, string> = {
-  orion: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop",
+  orion: "/images/orion-hubble-visible.jpg",
   andromeda: "https://images.unsplash.com/photo-1543722530-d2c3201371e7?q=80&w=800&auto=format&fit=crop",
-  ring: "https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=800&auto=format&fit=crop",
+  ring: "https://science.nasa.gov/wp-content/uploads/2023/04/ring-nebula-full_jpg-jpg.webp",
   carina: "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?q=80&w=800&auto=format&fit=crop",
   horsehead: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?q=80&w=800&auto=format&fit=crop"
 };
@@ -16,7 +16,7 @@ export default function HomePage() {
   const [featured, setFeatured] = useState<FeaturedTarget[]>([]);
 
   useEffect(() => {
-    getFeaturedTargets().then(setFeatured).catch(console.error);
+    getFeaturedTargets().then((targets) => setFeatured(targets.slice(0, 5))).catch(console.error);
   }, []);
 
   return (
@@ -27,7 +27,10 @@ export default function HomePage() {
             <h1>Welcome to<br/><span className="gradient-text">Cosmic Eye</span></h1>
             <p>Real SPHEREx data. Simple tools.<br/>Big discoveries.</p>
             <p className="hero-sub">Explore the sky, compare observations across time and wavelengths, and find interesting changes in the universe.</p>
-            <Link to="/explore" className="glow-btn">Start Exploring <ArrowRight size={18} /></Link>
+            <div className="hero-actions">
+              <Link to="/explore" className="glow-btn">Start Exploring <ArrowRight size={18} /></Link>
+              <Link to="/popular-regions" className="hero-regions-link">Popular Regions <ArrowRight size={16} /></Link>
+            </div>
           </div>
         </div>
 
@@ -44,11 +47,11 @@ export default function HomePage() {
             <p>Find the most recent observations from the mission.</p>
             <span className="link-text">Go to Browse <ArrowRight size={14}/></span>
           </Link>
-          <Link to="/wavelengths" className="feature-card">
-            <div className="icon-box orange"><Activity size={20} /></div>
-            <h3>Wavelengths</h3>
-            <p>See how different infrared wavelengths reveal different details.</p>
-            <span className="link-text">Go to Wavelengths <ArrowRight size={14}/></span>
+          <Link to="/rgb" className="feature-card">
+            <div className="icon-box orange"><Palette size={20} /></div>
+            <h3>Color Lab</h3>
+            <p>Explore infrared bands and change how their signals are colored.</p>
+            <span className="link-text">Go to Color Lab <ArrowRight size={14}/></span>
           </Link>
         </div>
 
@@ -61,7 +64,7 @@ export default function HomePage() {
           </div>
           <div className="popular-regions-grid">
             {featured.map((target) => (
-              <Link key={target.id} to="/explore" state={{ ra: target.ra.toString(), dec: target.dec.toString() }} className="region-card">
+              <Link key={target.id} to="/explore" state={{ ra: target.ra.toString(), dec: target.dec.toString(), targetName: target.name }} className="region-card">
                 <img src={FALLBACK_IMAGES[target.id] || target.image_url} alt={target.name} className="region-img" loading="lazy" />
                 <div className="region-info">
                   <h3>{target.name}</h3>

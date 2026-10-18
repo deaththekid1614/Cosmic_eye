@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { Observation } from '../types/observation';
+import { observationPreviewUrl } from '../api/client';
 
 type Props = {
   observation: Observation;
@@ -6,21 +8,36 @@ type Props = {
 };
 
 export default function ObservationCard({ observation, onClick }: Props) {
+  const [previewFailed, setPreviewFailed] = useState(false);
   const date = new Date(observation.observed_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
 
-  const previewUrl = `http://localhost:8000/api/v1/observations/preview?url=${encodeURIComponent(observation.source_url)}`;
+  const previewUrl = observationPreviewUrl(observation.source_url);
 
   return (
-    <div className="observation-card" onClick={onClick} style={{ cursor: 'pointer' }}>
+    <div
+      className="observation-card"
+      onClick={onClick}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); } }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${observation.id}, ${observation.band}`}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="obs-image-container">
-        <img 
+        {!previewFailed ? <img
           src={previewUrl} 
           alt={`Observation ${observation.id}`} 
           loading="lazy" 
           className="obs-image"
-        />
+          onError={() => setPreviewFailed(true)}
+        /> : (
+          <div className="preview-fallback" role="img" aria-label="Preview unavailable">
+            <span>Preview unavailable</span>
+            <small>Open the observation for details or source data</small>
+          </div>
+        )}
         <div className="obs-badge">{observation.band}</div>
       </div>
 

@@ -5,7 +5,8 @@ import { searchObservations } from '../api/observations';
 import type { Observation } from '../types/observation';
 import ObservationCard from '../components/ObservationCard';
 import ObservationViewer from '../components/ObservationViewer';
-import { Activity, Sparkles, Loader2, Palette } from 'lucide-react';
+import ColorReferenceImage from '../components/ColorReferenceImage';
+import { Sparkles, Loader2, Palette } from 'lucide-react';
 import { fetchJson } from '../api/client';
 
 export default function ExplorePage() {
@@ -28,8 +29,9 @@ export default function ExplorePage() {
     if (!state || hasHandledState.current) return;
     hasHandledState.current = true;
 
-    if (state.ra && state.dec) {
+    if (state.ra != null && state.dec != null) {
       setRa(state.ra); setDec(state.dec);
+      if (state.targetName) setQuery(state.targetName);
       handleSearch(state.ra, state.dec);
     } else if (state.aiQuery) {
       setQuery(state.aiQuery);
@@ -93,9 +95,6 @@ export default function ExplorePage() {
             <p>Search the IRSA archive or ask the global AI database.</p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => navigate('/wavelengths', { state: { ra, dec } })} className="secondary-btn" style={{ borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}>
-              <Activity size={16} /> Wavelengths
-            </button>
             <button onClick={() => navigate('/rgb', { state: { ra, dec } })} className="secondary-btn" style={{ borderColor: '#c084fc', color: '#c084fc' }}>
               <Palette size={16} /> True Color
             </button>
@@ -127,6 +126,8 @@ export default function ExplorePage() {
         </form>
 
         {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', border: '1px solid rgba(255,100,100,0.3)', marginBottom: '16px', fontWeight: 500 }}>{error}</div>}
+
+        <ColorReferenceImage targetName={query} show={results.length > 0} />
 
         <div className="results-grid">
           {results.map((obs) => (

@@ -28,6 +28,7 @@ export default function ImageSlider({ baseUrl, overlayUrl, onImageLoad }: Props)
           src={baseUrl} 
           alt="Original" 
           style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+          onError={onImageLoad}
         />
         <div style={{
           position: 'absolute', bottom: '20px', left: '20px',
@@ -80,6 +81,7 @@ export default function ImageSlider({ baseUrl, overlayUrl, onImageLoad }: Props)
       {/* Invisible Range Input */}
       <input 
         type="range" 
+        aria-label="Compare original and true-color images"
         min="0" max="100" 
         value={sliderPosition} 
         onChange={(e) => setSliderPosition(Number(e.target.value))} 
