@@ -32,44 +32,43 @@ The project was built for the 2026 NASA Space Apps Challenge. It is an independe
 
 ## End-to-end architecture
 
-This sequence shows an object-name search through to the rendered image. Coordinate search skips name resolution; Sky Map and Color Lab use the same archive and preview API through their own controls.
+This block diagram shows the main browser, API, and data-service boundaries. The three backend paths are separate operations: target resolution, archive metadata search, and FITS preview generation.
 
 ```mermaid
-sequenceDiagram
-    actor User
-    participant UI as React frontend
-    participant API as FastAPI /api/v1
-    participant Resolver as Backend name resolver
-    participant SIMBAD as SIMBAD service
-    participant Service as Archive service
-    participant IRSA as Astroquery / IRSA SIA2
-    participant FITS as IRSA FITS product
-    participant Cache as Local JPEG cache
-    User->>UI: Search object name
-    UI->>API: GET /api/v1/observations/ai-search?q=...
-    API->>Resolver: Resolve name
-    Resolver->>SIMBAD: Name lookup (unless local alias)
-    SIMBAD-->>Resolver: Coordinates and object type
-    Resolver-->>API: RA, Dec, matched name
-    API-->>UI: Resolved target
-    UI->>API: GET /api/v1/observations?ra=...&dec=...
-    API->>Service: Search calibrated image products
-    Service->>IRSA: Positional SPHEREx SIA query
-    IRSA-->>Service: Metadata, footprints, access URLs
-    Service-->>API: Normalized observations
-    API-->>UI: Observation cards and field centers
-    UI->>API: GET /api/v1/observations/preview?url=...&palette=...
-    API->>Cache: Check generated preview cache
-    alt Preview not cached
-        API->>FITS: Download product
-        FITS-->>API: FITS image data
-        API->>Cache: Normalize, colorize, save JPEG
-    else Preview cached
-        Cache-->>API: Cached JPEG
+flowchart LR
+    subgraph Browser[Browser]
+        User[User] --> UI[React and TypeScript UI]
+        UI --> Client[Typed API client]
     end
-    API-->>UI: JPEG preview
-    UI-->>User: Image, metadata, source link
+
+    subgraph Backend[FastAPI backend]
+        API[API routes<br/>/api/v1]
+        Resolver[Target resolver]
+        Archive[Archive service]
+        Adapter[Astroquery SIA adapter]
+        Preview[FITS preview service]
+        Cache[(Local JPEG cache)]
+        API --> Resolver
+        API --> Archive
+        Archive --> Adapter
+        API --> Preview
+        Preview <--> Cache
+    end
+
+    subgraph External[External astronomy services]
+        SIMBAD[(SIMBAD)]
+        SIA[(NASA/IPAC IRSA<br/>SPHEREx SIA2)]
+        FITS[(IRSA FITS products)]
+    end
+
+    Client -->|Search and preview requests| API
+    API -->|JSON and JPEG responses| Client
+    Resolver <-->|Name and coordinates| SIMBAD
+    Adapter <-->|Position query and image records| SIA
+    Preview <-->|FITS download| FITS
 ```
+
+**Typical user flow:** AI Search resolves a name to coordinates, then calls the archive search path. Manual Search starts with coordinates and skips name resolution. Browse and Sky Map provide coordinates from a selected region. The UI sends a product URL to the preview endpoint when it needs an image; that endpoint returns a cached JPEG or creates one from the FITS product. Color Lab additionally uses the wavelength-group endpoint to populate its band selector and scan queue.
 
 ### Component responsibilities
 
@@ -94,6 +93,19 @@ Single-band previews are display renderings, not the underlying science arrays. 
 - The Sky Map plots catalog directions on a sphere centered at the SPHEREx observer viewpoint. Marker locations encode RA/Dec direction, not physical distance or object size. The background stars come from a bundled Hipparcos coordinate list; target markers represent catalog entries with recorded SPHEREx coverage.
 - Observation wavelength labels describe the band. They do not identify the contents of an image. Do not interpret UI labels as scientific classifications or detections.
 - Archive files and externally hosted imagery retain their own source terms and attribution requirements. The repository’s MIT license does not relicense them.
+
+## Cross-check: M74 (Phantom Galaxy)
+
+On 2026-10-18, we cross-checked the M74 search shown in the app against the SIMBAD object position and the actual SPHEREx archive footprints:
+
+| Check | Result |
+| --- | --- |
+| Target identity and coordinates | SIMBAD lists M74 at ICRS RA `24.1739379°`, Dec `+15.7836409°`. The app’s search coordinates, RA `24.17393792°`, Dec `+15.78364083°`, match to the displayed precision. [SIMBAD: M 74](https://simbad.u-strasbg.fr/simbad/sim-id?Ident=M+74) |
+| SPHEREx archive coverage | An IRSA SIA2 position query at M74 returned the screenshot’s QR2 products, including `2026W01_2A_0510_1`, `2026W01_2A_0510_2`, and `2026W01_2A_0510_4`. Their `s_region` footprint polygons include M74’s coordinates. [SPHEREx archive SIA2 documentation](https://caltech-ipac.github.io/spherex-archive-documentation/spherex-data-access/) |
+| Why image centers differ | Those records report tile centers around RA `23.57°`, Dec `+14.81°` for the first product, roughly `1.14°` from M74. The archive returns them because their larger image footprints cover the target; the center is not M74’s position. |
+| What the preview proves | It is a real SPHEREx infrared tile that covers the target. The app preview shows the tile’s broad field; it is not a crop or a claim that M74 is visibly resolved in that thumbnail. |
+
+This check confirms the search position and archive coverage. It does not establish image quality for science analysis or mean that the thumbnail is a close-up of the galaxy.
 
 ## Technology
 

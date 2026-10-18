@@ -97,6 +97,12 @@ To run configured checks, provision `backend/.venv` and install frontend depende
 - Featured images on Home can use external decorative imagery. Popular Region cards request actual SPHEREx archive preview products separately.
 - The app does not claim to detect Planet X or confirm transient discoveries. Interpret observations through the archive product, its metadata, calibration, and applicable scientific documentation.
 
+## Verified M74 search example
+
+On 2026-10-18, we checked the app’s Phantom Galaxy (M74) search against SIMBAD and queried the SPHEREx QR2 archive at the target coordinates. SIMBAD’s ICRS position is RA `24.1739379°`, Dec `+15.7836409°`, matching the app search coordinates RA `24.17393792°`, Dec `+15.78364083°`. The IRSA SIA2 response included products shown in the app (`2026W01_2A_0510_1`, `2026W01_2A_0510_2`, and `2026W01_2A_0510_4`); their `s_region` polygons cover M74. For the first product, the field center is about RA `23.57°`, Dec `+14.81°`, roughly `1.14°` from the galaxy. This is consistent with a wide SPHEREx footprint covering M74; it does not mean the thumbnail is a crop or a resolved close-up of the galaxy.
+
+References: [SIMBAD M 74 record](https://simbad.u-strasbg.fr/simbad/sim-id?Ident=M+74), [IRSA SPHEREx SIA2 data-access guide](https://caltech-ipac.github.io/spherex-archive-documentation/spherex-data-access/).
+
 ## Important source locations
 
 ```text
