@@ -46,5 +46,6 @@ class WavelengthSet(BaseModel):
     bands: List[BandDetail]
 
 class WavelengthResponse(BaseModel):
-    sets: List[WavelengthSet]
+    all_bands: List[BandDetail] # <--- ALL unique bands for the slider
+    sets: List[WavelengthSet]   # <--- Grouped observations for the sidebar queue
     provenance: ProvenanceInfo

@@ -14,21 +14,21 @@ export default function WavelengthsPage() {
   const [imageLoading, setImageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [allBands, setAllBands] = useState<BandDetail[]>([]);
   const [sets, setSets] = useState<WavelengthSet[]>([]);
-  const [selectedSet, setSelectedSet] = useState<WavelengthSet | null>(null);
   const [selectedBand, setSelectedBand] = useState<BandDetail | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async (searchRa: string, searchDec: string) => {
     setLoading(true); setError(null); setHasSearched(true);
-    setSets([]); setSelectedSet(null); setSelectedBand(null);
+    setAllBands([]); setSets([]); setSelectedBand(null);
 
     try {
       const data = await getWavelengthSets(Number(searchRa), Number(searchDec), 0.01);
+      setAllBands(data.all_bands);
       setSets(data.sets);
-      if (data.sets.length > 0) {
-        setSelectedSet(data.sets[0]);
-        setSelectedBand(data.sets[0].bands[0]);
+      if (data.all_bands.length > 0) {
+        setSelectedBand(data.all_bands[0]);
         setImageLoading(true);
       }
     } catch (err: any) {
@@ -51,7 +51,6 @@ export default function WavelengthsPage() {
     handleSearch(ra, dec);
   };
 
-  // Removed &wavelength= parameter
   const imageUrl = selectedBand 
     ? `http://localhost:8000/api/v1/observations/preview?url=${encodeURIComponent(selectedBand.source_url)}`
     : '';
@@ -63,16 +62,18 @@ export default function WavelengthsPage() {
     }
   };
 
+  // When clicking an observation in the sidebar, jump to its first band in the global list
   const handleSetChange = (set: WavelengthSet) => {
-    setSelectedSet(set);
-    handleBandChange(set.bands[0]);
+    if (set.bands.length > 0) {
+      handleBandChange(set.bands[0]);
+    }
   };
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px' }}>
       <div className="explore-header">
         <h1>Wavelength Explorer</h1>
-        <p>Compare different wavelengths of the same region.</p>
+        <p>Compare all available infrared wavelengths for this sky region.</p>
       </div>
 
       <form onSubmit={onSubmit} className="search-form" style={{ marginBottom: '24px' }}>
@@ -83,17 +84,17 @@ export default function WavelengthsPage() {
 
       {error && <div style={{ color: '#ff8888', padding: '16px', background: 'rgba(255,100,100,0.1)', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
 
-      {!loading && hasSearched && sets.length === 0 && !error && (
+      {!loading && hasSearched && allBands.length === 0 && !error && (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
           <AlertCircle size={32} style={{ margin: '0 auto 16px' }} />
           <h3>No multi-band observations found.</h3>
         </div>
       )}
 
-      {selectedSet && selectedBand && (
+      {selectedBand && (
         <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flex: 1, minHeight: 0 }}>
           
-          {/* LEFT SIDE: BIG IMAGE + SLIDER */}
+          {/* LEFT SIDE: BIG IMAGE + SLIDER (Uses all_bands) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: 0 }}>
             
             <div style={{ flex: 1, position: 'relative', background: '#000', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -118,15 +119,16 @@ export default function WavelengthsPage() {
               )}
             </div>
 
+            {/* Slider uses all_bands! */}
             <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
               <input 
                 type="range" 
                 min="0" 
-                max={selectedSet.bands.length - 1} 
-                value={selectedSet.bands.findIndex(b => b.wavelength_um === selectedBand.wavelength_um)}
+                max={allBands.length - 1} 
+                value={allBands.findIndex(b => b.wavelength_um === selectedBand.wavelength_um)}
                 onChange={(e) => {
                   const idx = parseInt(e.target.value);
-                  handleBandChange(selectedSet.bands[idx]);
+                  handleBandChange(allBands[idx]);
                 }}
                 style={{ width: '100%', cursor: 'ew-resize', height: '6px', borderRadius: '3px', appearance: 'auto', accentColor: 'var(--accent-blue)' }}
               />
@@ -137,24 +139,23 @@ export default function WavelengthsPage() {
             </div>
           </div>
 
-          {/* RIGHT SIDE: SIDEBAR WITH BANDS & OTHER OBSERVATIONS */}
+          {/* RIGHT SIDE: SIDEBAR WITH ALL BANDS & QUEUE */}
           <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {/* 1. ALL AVAILABLE BANDS */}
             <div className="wavelength-card" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', marginBottom: '8px' }}><Activity size={18} /> Available Bands</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                Observation: {selectedSet.obs_id}
-              </p>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', marginBottom: '8px' }}><Activity size={18} /> All Bands ({allBands.length})</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {selectedSet.bands.map((band) => (
+                {allBands.map((band) => (
                   <button
                     key={band.wavelength_um}
                     onClick={() => handleBandChange(band)}
                     style={{
-                      padding: '10px 16px', borderRadius: '8px', border: '1px solid',
+                      padding: '8px 12px', borderRadius: '6px', border: '1px solid',
                       borderColor: selectedBand.wavelength_um === band.wavelength_um ? 'var(--accent-blue)' : 'var(--border-color)',
                       background: selectedBand.wavelength_um === band.wavelength_um ? 'var(--accent-blue)' : 'var(--bg-card)',
                       color: selectedBand.wavelength_um === band.wavelength_um ? 'white' : 'var(--text-main)',
-                      cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, transition: 'all 0.2s'
+                      cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s'
                     }}
                   >
                     {band.wavelength_um} µm
@@ -163,8 +164,9 @@ export default function WavelengthsPage() {
               </div>
             </div>
 
+            {/* 2. OBSERVATION QUEUE */}
             <div className="wavelength-card" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1.05rem', marginBottom: '12px' }}>Other Observations</h3>
+              <h3 style={{ fontSize: '1.05rem', marginBottom: '12px' }}>Observation Queue</h3>
               <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
                 {sets.map((set) => (
                   <button
@@ -172,21 +174,22 @@ export default function WavelengthsPage() {
                     onClick={() => handleSetChange(set)}
                     style={{
                       padding: '12px', textAlign: 'left', borderRadius: '8px', border: '1px solid',
-                      borderColor: selectedSet.obs_id === set.obs_id ? 'var(--accent-blue)' : 'var(--border-color)',
-                      background: selectedSet.obs_id === set.obs_id ? 'rgba(79, 140, 255, 0.1)' : 'var(--bg-card)',
+                      borderColor: set.bands.some(b => b.wavelength_um === selectedBand.wavelength_um) ? 'var(--accent-blue)' : 'var(--border-color)',
+                      background: set.bands.some(b => b.wavelength_um === selectedBand.wavelength_um) ? 'rgba(79, 140, 255, 0.1)' : 'var(--bg-card)',
                       color: 'var(--text-main)', cursor: 'pointer', transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: selectedSet.obs_id === set.obs_id ? 'var(--accent-blue)' : 'var(--text-main)', fontSize: '0.9rem' }}>
+                    <div style={{ fontWeight: 600, color: set.bands.some(b => b.wavelength_um === selectedBand.wavelength_um) ? 'var(--accent-blue)' : 'var(--text-main)', fontSize: '0.9rem' }}>
                       {set.obs_id}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      {set.bands.length} bands available
+                      {set.bands.length} bands in this scan
                     </div>
                   </button>
                 ))}
               </div>
             </div>
+
           </div>
         </div>
       )}

@@ -9,6 +9,7 @@ from app.schemas.observation import (
 )
 
 def fetch_normalized_observations(ra: float, dec: float, radius_deg: float, collection: str, page: int, page_size: int) -> ObservationListResponse:
+    # (Keep exactly as it is)
     raw_table = search_observations(ra, dec, radius_deg, collection)
     valid_rows = []
     for row in raw_table:
@@ -40,29 +41,47 @@ def fetch_normalized_observations(ra: float, dec: float, radius_deg: float, coll
 
 def fetch_wavelength_sets(ra: float, dec: float, radius_deg: float, collection: str) -> WavelengthResponse:
     raw_table = search_observations(ra, dec, radius_deg, collection)
+    
     grouped_data = defaultdict(list)
+    all_unique_bands = {} # Use dict to avoid duplicate wavelengths
     
     for row in raw_table:
         if row["calib_level"] < 2 or row["dataproduct_type"] != "image": continue
+        
         obs_id = str(row["obs_id"])
         em_min_um = row["em_min"] * 1e6
         em_max_um = row["em_max"] * 1e6
         center_um = (em_min_um + em_max_um) / 2
+        rounded_center = round(center_um, 2)
+        
         ml_class = xgb_classify(center_um, float(row.get("em_res_power", 40.0)))
         
-        grouped_data[obs_id].append({
-            "band_name": f"{em_min_um:.2f}–{em_max_um:.2f} µm",
-            "wavelength_um": round(center_um, 3),
-            "source_url": str(row["access_url"]),
-            "classification": ml_class
-        })
+        band_obj = BandDetail(
+            band_name=f"{em_min_um:.2f}–{em_max_um:.2f} µm",
+            wavelength_um=rounded_center,
+            source_url=str(row["access_url"]),
+            classification=ml_class
+        )
+        
+        grouped_data[obs_id].append(band_obj)
+        
+        # Add to the global list if we haven't seen this exact wavelength yet
+        if rounded_center not in all_unique_bands:
+            all_unique_bands[rounded_center] = band_obj
 
     valid_sets = []
     for obs_id, bands in grouped_data.items():
-        if len(bands) > 1: # Only keep observations with multiple bands
-            sorted_bands = sorted(bands, key=lambda b: b["wavelength_um"])
-            band_details = [BandDetail(**b) for b in sorted_bands]
-            valid_sets.append(WavelengthSet(obs_id=obs_id, ra=ra, dec=dec, bands=band_details))
+        if len(bands) > 1:
+            sorted_bands = sorted(bands, key=lambda b: b.wavelength_um)
+            valid_sets.append(WavelengthSet(obs_id=obs_id, ra=ra, dec=dec, bands=sorted_bands))
 
     valid_sets.sort(key=lambda s: len(s.bands), reverse=True)
-    return WavelengthResponse(sets=valid_sets, provenance=ProvenanceInfo(retrieved_at=datetime.now(timezone.utc).isoformat()))
+    
+    # Sort the global band list from shortest to longest wavelength
+    sorted_all_bands = sorted(all_unique_bands.values(), key=lambda b: b.wavelength_um)
+    
+    return WavelengthResponse(
+        all_bands=sorted_all_bands, 
+        sets=valid_sets, 
+        provenance=ProvenanceInfo(retrieved_at=datetime.now(timezone.utc).isoformat())
+    )

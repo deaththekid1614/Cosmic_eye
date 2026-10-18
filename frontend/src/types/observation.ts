@@ -19,5 +19,5 @@ export type ObservationListResponse = {
 };
 export type BandDetail = { band_name: string; wavelength_um: number; source_url: string; classification: string; };
 export type WavelengthSet = { obs_id: string; ra: number; dec: number; bands: BandDetail[]; };
-export type WavelengthResponse = { sets: WavelengthSet[]; provenance: ProvenanceInfo; };
+export type WavelengthResponse = { all_bands: BandDetail[]; sets: WavelengthSet[]; provenance: ProvenanceInfo; };
 export type FeaturedTarget = { id: string; name: string; type: string; ra: number; dec: number; description: string; image_url: string; };
