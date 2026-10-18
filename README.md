@@ -1,8 +1,12 @@
 # Cosmic Eye
 
-Cosmic Eye is a web app for exploring public NASA SPHEREx infrared observations. Search by sky coordinates or astronomical object name, browse regions with archive coverage, view image previews, and inspect the same sky area across available infrared bands.
+### Explore the infrared universe with real SPHEREx archive data.
 
-The project was built for the 2026 NASA Space Apps Challenge. It is an independent prototype, not an official NASA product, and it does not detect or confirm Planet X or any other discovery.
+Cosmic Eye is an interactive astronomy explorer for public NASA SPHEREx observations. Find a nebula or galaxy by name, search any sky coordinate, browse known regions, and inspect infrared image products across available bands—all from one place.
+
+**Search the sky** 🔭 &nbsp; **Browse real observations** 🛰️ &nbsp; **Explore the 3D map** 🌌
+
+Built for the **2026 NASA Space Apps Challenge**, Cosmic Eye brings astronomy archive data into a visual, approachable experience. It is an independent prototype, not an official NASA product, and it does not detect or confirm Planet X or any other discovery.
 
 ## Contents
 
@@ -19,20 +23,22 @@ The project was built for the 2026 NASA Space Apps Challenge. It is an independe
 
 ## Features
 
+Explore the app from a target, a coordinate, or a sky-wide view:
+
 | Feature | What it does | Data and behavior |
 | --- | --- | --- |
-| Home (`/`) | Introduces Cosmic Eye and links to search, browse, and featured targets. | Featured thumbnails can be decorative external images; selecting a target starts an archive search at its coordinates. |
-| AI Search (`/ai-search`) | Resolves an astronomical object name and finds SPHEREx products near its position. | Uses SIMBAD plus a small local alias list. “AI” is the product label; this is name resolution, not a generative assistant. |
-| Manual Search (`/explore`) | Searches by right ascension and declination; opens observation metadata and source links. | Results are image footprints around the searched position. Displayed RA/Dec values are the product field centers. |
-| Browse (`/browse`) | Offers Popular Regions and Recent Observations tabs. | Region cards load real SPHEREx previews. Recent Observations queries a fixed sample sky field, not a mission-wide date search. |
-| Popular Regions (`/popular-regions`) | Opens Browse at its region tab. | Uses a curated target catalog; selecting a card opens that target’s archive observations. |
-| Sky Map (`/skymap`) | Interactive Three.js sky sphere with rotation, zoom, grid, filters, target selection, and name search. | Displays 117 built-in target records and Hipparcos guide stars. Added targets are checked for archive coverage and saved in browser local storage. It is not a complete map of all observations. |
-| Color Lab (`/rgb`) | Changes the display palette or wavelength band for an infrared image; includes a queue of scans in the region. | Displays one band image at a time. Palettes: Inferno, Viridis, Plasma, Cividis, and Magma. |
-| Learn (`/learn`) | Explains infrared and how wavelength/palette choices affect display. | Includes an illustrative signal graphic, not observed SPHEREx data. |
+| 🏠 Home (`/`) | Introduces Cosmic Eye and links to search, browse, and featured targets. | Featured thumbnails can be decorative external images; selecting a target starts an archive search at its coordinates. |
+| ✨ AI Search (`/ai-search`) | Resolves an astronomical object name and finds SPHEREx products near its position. | Uses SIMBAD plus a small local alias list. “AI” is the product label; this is name resolution, not a generative assistant. |
+| 🔎 Manual Search (`/explore`) | Searches by right ascension and declination; opens observation metadata and source links. | Results are image footprints around the searched position. Displayed RA/Dec values are the product field centers. |
+| 🗂️ Browse (`/browse`) | Offers Popular Regions and Recent Observations tabs. | Region cards load real SPHEREx previews. Recent Observations queries a fixed sample sky field, not a mission-wide date search. |
+| ⭐ Popular Regions (`/popular-regions`) | Opens Browse at its region tab. | Uses a curated target catalog; selecting a card opens that target’s archive observations. |
+| 🌌 Sky Map (`/skymap`) | Interactive Three.js sky sphere with rotation, zoom, grid, filters, target selection, and name search. | Displays 117 built-in target records and Hipparcos guide stars. Added targets are checked for archive coverage and saved in browser local storage. It is not a complete map of all observations. |
+| 🎨 Color Lab (`/rgb`) | Changes the display palette or wavelength band for an infrared image; includes a queue of scans in the region. | Displays one band image at a time. Palettes: Inferno, Viridis, Plasma, Cividis, and Magma. |
+| 📖 Learn (`/learn`) | Explains infrared and how wavelength/palette choices affect display. | Includes an illustrative signal graphic, not observed SPHEREx data. |
 
 ## End-to-end architecture
 
-This block diagram follows a request from the browser through the API and out to the astronomy data services. It shows the three backend jobs separately: resolve a name, find image products, and render a preview.
+Follow the data from a user's search to the image on screen. The backend handles three steps: resolve a target name, find matching archive products, and create a preview from the selected FITS file.
 
 ```text
 +------------------------------------------------------------------+
