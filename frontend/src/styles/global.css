@@ -721,6 +721,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .solar-type-pill.asteroid { color: #f1bd88; background: rgba(227,165,108,.13); }
 .solar-selected-body h3 { margin: 7px 0 4px; font-size: .98rem; }
 .solar-selected-body > p { color: #9eacc1; font-size: .68rem; line-height: 1.45; }
+.solar-body-photo { margin: 8px 0; overflow: hidden; border: 1px solid rgba(103,133,177,.24); border-radius: 7px; background: rgba(2,7,14,.65); }
+.solar-body-photo a { display: block; }
+.solar-body-photo img { display: block; width: 100%; height: 112px; object-fit: cover; background: #080d15; }
+.solar-body-photo figcaption { display: flex; flex-direction: column; gap: 3px; padding: 6px 7px; }
+.solar-body-photo figcaption span { overflow: hidden; color: #d9e5f7; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
+.solar-body-photo figcaption small, .solar-photo-state { color: #92a3bb; font-size: .55rem; line-height: 1.4; }
+.solar-photo-state { margin: 7px 0; padding: 9px; border: 1px solid rgba(103,133,177,.16); border-radius: 7px; background: rgba(255,255,255,.025); }
 .solar-selected-body dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
 .solar-selected-body dl div { padding: 7px; border-radius: 6px; background: rgba(255,255,255,.04); }
 .solar-selected-body dt { color: #8999b1; font-size: .58rem; }
@@ -737,6 +744,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .skymap-content.is-solar-mode { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; flex-direction: column; }
 .skymap-content.is-solar-mode > .skymap-mode-tabs { display: none; }
 .skymap-content.is-solar-mode.is-fullscreen { gap: 0; padding: 0; }
+.skymap-content.is-solar-fullscreen { width: 100vw; height: 100dvh; min-width: 0; min-height: 100dvh; max-width: none; overflow: hidden; padding: 0; }
 .skymap-content.is-solar-fullscreen .solar-system-explorer,
 .skymap-content.is-solar-mode:not(.is-fullscreen) .solar-system-explorer { display: flex; width: 100%; height: 100%; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; padding: 0; border: 0; border-radius: 0; background: #050a13; }
 .solar-system-stage { position: relative; width: 100%; height: 100%; min-height: 0; flex: 1 1 auto; overflow: hidden; isolation: isolate; background: radial-gradient(ellipse at 47% 52%,#0d1b31 0,#070e1a 48%,#03060c 100%); }
@@ -758,13 +766,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .solar-map-actions > .solar-control-primary { color: #fff; border-color: transparent; background: linear-gradient(110deg,#398ff1,#765bf2); }
 .solar-map-actions select { max-width: 118px; padding: 3px 5px; color: #e4edfc; font-size: .63rem; border: 1px solid rgba(117,145,184,.24); border-radius: 5px; background: #101a2a; }
 .solar-map-actions .solar-toggle { min-height: 29px; padding: 3px 5px; font-size: .63rem; }
-.solar-system-panel { position: absolute; z-index: 3; top: 80px; right: 14px; bottom: 14px; display: flex; width: min(302px,32vw); max-height: none; flex-direction: column; overflow: hidden; border-color: rgba(122,151,194,.24); background: rgba(8,14,25,.86); box-shadow: 0 12px 34px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
+.solar-system-panel { position: absolute; z-index: 3; top: 80px; right: 14px; bottom: 14px; display: flex; width: min(302px,32vw); max-height: none; flex-direction: column; overflow-x: hidden; overflow-y: auto; border-color: rgba(122,151,194,.24); background: rgba(8,14,25,.86); box-shadow: 0 12px 34px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
 .solar-panel-header { padding: 12px 12px 8px; }
 .solar-panel-header h3 { font-size: .78rem; }
 .solar-category-tabs { gap: 2px; padding: 0 9px 7px; }
 .solar-category-tabs button { padding: 5px 7px; font-size: .61rem; }
 .solar-body-search { min-height: 31px; margin: 0 9px 7px; }
-.solar-body-list { min-height: 50px; flex: 1 1 auto; gap: 3px; padding: 0 8px 7px; }
+.solar-body-list { min-height: 50px; max-height: 40%; flex: 1 1 40%; gap: 3px; padding: 0 8px 7px; }
 .solar-body-list button { min-height: 38px; padding: 5px 7px; }
 .solar-body-list strong { font-size: .66rem; }
 .solar-body-list small { font-size: .57rem; }

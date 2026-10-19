@@ -18,6 +18,7 @@ type ModelResponse = {
   asteroids: OrbitRecord[]; asteroid_count: number; sources: string[]; notes: string[];
   spacecraft: { semi_major_axis_km: number; eccentricity: number; inclination_deg: number; ascending_node_deg: number; period_minutes: number; phase_is_telemetry: boolean };
 };
+type HoverTarget = { id: string; name: string; type: string; parent_name?: string };
 
 const AU_KM = 149_597_870.7;
 const DEG = Math.PI / 180;
@@ -49,8 +50,43 @@ function orbitalVector(body: OrbitRecord, jd: number) {
 function mapPosition(auVector: THREE.Vector3) {
   const distance = auVector.length();
   if (distance < 1e-12) return new THREE.Vector3();
-  const mappedDistance = 1.8 + Math.log1p(distance * 5.6) * 3.5;
+  // A square-root AU scale gives the inner planets room to read clearly while
+  // keeping the outer system in frame. The accompanying note explains this
+  // deliberate visualization scale.
+  const mappedDistance = 2.2 + Math.sqrt(distance) * 4.4;
   return auVector.multiplyScalar(mappedDistance / distance);
+}
+
+type NasaImageResult = { title: string; description: string; date?: string; imageUrl: string; nasaId: string };
+const nasaImageCache = new Map<string, NasaImageResult | null>();
+type ImageBody = { name: string; type: string; parent_name?: string };
+
+async function findNasaImage(body: ImageBody | null, signal: AbortSignal): Promise<NasaImageResult | null> {
+  if (!body) return null;
+  const query = body.type === 'moon' ? `${body.name} ${body.parent_name} moon` : body.type === 'asteroid' ? `${body.name} asteroid spacecraft` : `${body.name} planet spacecraft`;
+  const cacheKey = query.toLowerCase();
+  if (nasaImageCache.has(cacheKey)) return nasaImageCache.get(cacheKey) ?? null;
+  const response = await fetch(`https://images-api.nasa.gov/search?${new URLSearchParams({ q: query, media_type: 'image', page_size: '30' })}`, { signal });
+  if (!response.ok) throw new Error('NASA image search is temporarily unavailable.');
+  const payload = await response.json() as { collection?: { items?: Array<{ data?: Array<{ title?: string; description?: string; date_created?: string; nasa_id?: string }>; links?: Array<{ rel?: string; href?: string }> }> } };
+  const targetName = body.name.toLowerCase();
+  const match = (payload.collection?.items ?? []).find((item) => {
+    const data = item.data?.[0];
+    const searchableText = `${data?.title ?? ''} ${data?.description ?? ''}`.toLowerCase();
+    const looksLikeIllustration = /artist concept|artist's concept|illustration|rendering|simulation|simulated view/.test(searchableText);
+    return Boolean(data?.nasa_id && data.title?.toLowerCase().includes(targetName) && !looksLikeIllustration && item.links?.some((link) => link.rel === 'preview' && link.href));
+  });
+  const data = match?.data?.[0];
+  const imageUrl = match?.links?.find((link) => link.rel === 'preview')?.href;
+  const result = data?.nasa_id && imageUrl ? {
+    title: data.title ?? body.name,
+    description: data.description ?? '',
+    date: data.date_created,
+    imageUrl,
+    nasaId: data.nasa_id,
+  } : null;
+  nasaImageCache.set(cacheKey, result);
+  return result;
 }
 
 function moonOrbitScale(body: OrbitRecord) {
@@ -138,7 +174,7 @@ function glowTexture(color: string) {
 }
 
 function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, selectedId, focusedId, onSelect, onHover, followObserver, showAsteroids, showMoons }: {
-  model: ModelResponse; offsetDays: number; selectedId: string | null; focusedId: string | null; onSelect: (id: string) => void; onHover: (body: OrbitRecord | null, x: number, y: number) => void;
+  model: ModelResponse; offsetDays: number; selectedId: string | null; focusedId: string | null; onSelect: (id: string) => void; onHover: (body: HoverTarget | null, x: number, y: number) => void;
   anchorMs: number; playing: boolean; speed: number; followObserver: boolean; showAsteroids: boolean; showMoons: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -151,7 +187,9 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'low-power' }); }
     catch { host.dataset.webglUnavailable = 'true'; return; }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.2));
+    // A capped render scale makes this canvas substantially cheaper on laptops
+    // with high-DPI displays while retaining crisp labels and body silhouettes.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setClearColor(0x050a13, 1);
     host.dataset.webglUnavailable = 'false';
@@ -161,7 +199,7 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
     const camera = new THREE.PerspectiveCamera(52, 1, 0.01, 200);
     let yaw = -0.42;
     let pitch = 0.82;
-    let zoom = 34;
+    let zoom = 42;
     let overviewZoom = zoom;
     let zoomOffset = 0;
     let lastFocusId: string | null | undefined;
@@ -173,10 +211,10 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
     const sunLight = new THREE.PointLight(0xffe5ad, 150, 0, 1.2);
     scene.add(sunLight);
 
-    const starPositions = new Float32Array(1800 * 3);
+    const starPositions = new Float32Array(700 * 3);
     let seed = 93041;
     const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-    for (let i = 0; i < 1800; i += 1) {
+    for (let i = 0; i < 700; i += 1) {
       const radius = 52 + random() * 30;
       const theta = random() * TWO_PI;
       const z = random() * 2 - 1;
@@ -214,7 +252,7 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       group.userData.bodyId = planet.id;
       const radius = bodyRadius(planet);
       const material = new THREE.MeshStandardMaterial({ map: surfaceTexture(planet), color: '#ffffff', roughness: 0.82, metalness: 0.02 });
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 24), material);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 18, 14), material);
       mesh.userData.bodyId = planet.id;
       mesh.rotation.z = (planet.axial_tilt_deg ?? 0) * DEG;
       group.add(mesh);
@@ -238,7 +276,7 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       orbit.userData.bodyId = moon.id;
       moonOrbitLines.set(moon.id, orbit);
       scene.add(orbit);
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), new THREE.MeshStandardMaterial({ map: surfaceTexture(moon), color: '#ffffff', roughness: 0.9 }));
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 8), new THREE.MeshStandardMaterial({ map: surfaceTexture(moon), color: '#ffffff', roughness: 0.9 }));
       mesh.userData.bodyId = moon.id;
       moonObjects.set(moon.id, mesh);
       bodyObjects.set(moon.id, mesh);
@@ -270,6 +308,10 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
     observerOrbit.add(observer);
     scene.add(observerOrbit);
 
+    // Hover checks stay limited to named bodies. The 450-instance asteroid
+    // cloud is tested only on click, avoiding expensive mesh raycasts per move.
+    const hoverTargets = [...bodyObjects.values(), sun, observer];
+
     const raycaster = new THREE.Raycaster();
     raycaster.params.Points = { threshold: 0.3 };
     const pointer = new THREE.Vector2();
@@ -290,12 +332,12 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects([...bodyObjects.values(), sun, asteroidPoints], false)[0];
+      const hit = raycaster.intersectObjects(hoverTargets, false)[0];
       const id = hit ? hit.object === asteroidPoints && hit.instanceId !== undefined ? model.asteroids[hit.instanceId]?.id ?? null : String(hit.object.userData.bodyId ?? 'sun') : null;
       renderer.domElement.style.cursor = id ? 'pointer' : 'grab';
       if (id !== hoveredId) {
         hoveredId = id;
-        const body = model.planets.find((item) => item.id === id) ?? model.moons.find((item) => item.id === id) ?? model.asteroids.find((item) => item.id === id) ?? null;
+        const body = model.planets.find((item) => item.id === id) ?? model.moons.find((item) => item.id === id) ?? model.asteroids.find((item) => item.id === id) ?? (id === 'sun' ? { id, name: 'Sun', type: 'Star' } : id === 'spherex' ? { id, name: 'SPHEREx', type: 'Observer' } : null);
         interactionRef.current.onHover(body, event.clientX - rect.left, event.clientY - rect.top);
       }
     };
@@ -306,7 +348,8 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects([...bodyObjects.values(), sun, asteroidPoints], false)[0];
+      const namedHit = raycaster.intersectObjects(hoverTargets, false)[0];
+      const hit = namedHit ?? raycaster.intersectObject(asteroidPoints, false)[0];
       if (!hit) { interactionRef.current.onHover(null, 0, 0); return; }
       if (hit.object === asteroidPoints && hit.instanceId !== undefined) interactionRef.current.onSelect(model.asteroids[hit.instanceId]?.id ?? null);
       else interactionRef.current.onSelect(String(hit.object.userData.bodyId ?? 'sun'));
@@ -361,7 +404,6 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       observer.position.set(Math.cos(phase) * 0.83, 0, Math.sin(phase) * 0.83);
     };
     let lastPositionUpdate = 0;
-    let lastPositionOffset = Number.NaN;
     let lastSelectedId: string | null = null;
     let lastAsteroidsVisible = true;
     let lastMoonsVisible = true;
@@ -377,10 +419,9 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
         else zoom = overviewZoom;
         wasFollowingObserver = state.followObserver;
       }
-      if (now - lastPositionUpdate > 120 || Math.abs(offsetDays - lastPositionOffset) > 0.02) {
+      if (now - lastPositionUpdate > 300) {
         updateOrbitalPositions(model.epoch_jd + offsetDays, offsetDays);
         lastPositionUpdate = now;
-        lastPositionOffset = offsetDays;
       }
       if (state.followObserver || state.focusedId === 'spherex') desiredTarget.copy(observerOrbit.position).add(observer.position);
       else if (state.focusedId === 'sun') desiredTarget.set(0, 0, 0);
@@ -396,13 +437,15 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       camera.lookAt(cameraTarget);
 
       const hours = offsetDays * 24;
-      for (const planet of model.planets) {
-        const mesh = bodyObjects.get(planet.id);
-        if (mesh && planet.rotation_hours) mesh.rotation.y = (hours / planet.rotation_hours) * TWO_PI;
-      }
-      for (const moon of moonRecords) {
-        const mesh = bodyObjects.get(moon.id);
-        if (mesh && moon.rotation_hours) mesh.rotation.y = (hours / moon.rotation_hours) * TWO_PI;
+      if (state.playing) {
+        for (const planet of model.planets) {
+          const mesh = bodyObjects.get(planet.id);
+          if (mesh && planet.rotation_hours) mesh.rotation.y = (hours / planet.rotation_hours) * TWO_PI;
+        }
+        for (const moon of moonRecords) {
+          const mesh = bodyObjects.get(moon.id);
+          if (mesh && moon.rotation_hours) mesh.rotation.y = (hours / moon.rotation_hours) * TWO_PI;
+        }
       }
       if (lastSelectedId !== state.selectedId) {
         bodyObjects.forEach((object, id) => object.scale.setScalar(id === state.selectedId ? 1.55 : 1));
@@ -431,11 +474,19 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
         });
         lastMoonsVisible = state.showMoons;
       }
+      if (now - lastRender < 33) { frame = window.requestAnimationFrame(render); return; }
+      lastRender = now;
       try { renderer.render(scene, camera); }
       catch { host.dataset.webglUnavailable = 'true'; return; }
       frame = window.requestAnimationFrame(render);
     };
     const onContextLost = (event: Event) => { event.preventDefault(); window.cancelAnimationFrame(frame); host.dataset.webglUnavailable = 'true'; };
+    const onVisibilityChange = () => {
+      window.cancelAnimationFrame(frame);
+      if (!document.hidden) { lastRender = 0; frame = window.requestAnimationFrame(render); }
+    };
+    let lastRender = 0;
+    document.addEventListener('visibilitychange', onVisibilityChange);
     renderer.domElement.addEventListener('webglcontextlost', onContextLost);
     frame = window.requestAnimationFrame(render);
 
@@ -446,6 +497,7 @@ function SolarSystemCanvas({ model, offsetDays, anchorMs, playing, speed, select
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
       renderer.domElement.removeEventListener('wheel', onWheel);
       renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       scene.traverse((object) => {
         if (object instanceof THREE.Sprite) {
           object.material.map?.dispose();
@@ -475,6 +527,17 @@ const SolarBodyList = memo(function SolarBodyList({ bodies, selectedId, onSelect
   </div>;
 });
 
+function NasaImageCard({ image, loading, unavailable, name }: { image: NasaImageResult | null; loading: boolean; unavailable: boolean; name: string }) {
+  if (loading) return <div className="solar-photo-state">Searching NASA’s image archive for {name}…</div>;
+  if (!image) return <div className="solar-photo-state">{unavailable ? 'NASA’s image archive is currently unavailable.' : `No matching captured image of ${name} was found.`}</div>;
+  return <figure className="solar-body-photo">
+    <a href={`https://images.nasa.gov/details/${encodeURIComponent(image.nasaId)}`} target="_blank" rel="noreferrer" title="Open this image in NASA’s Image and Video Library">
+      <img src={image.imageUrl} alt={`${name}: ${image.title}`} loading="lazy" />
+    </a>
+    <figcaption><span>{image.title}</span><small>NASA Image and Video Library{image.date ? ` · ${new Date(image.date).getUTCFullYear()}` : ''} · View source</small></figcaption>
+  </figure>;
+}
+
 export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: 'sky' | 'solar-system') => void }) {
   const [model, setModel] = useState<ModelResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -484,7 +547,11 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
   const [offsetDays, setOffsetDays] = useState(0);
   const [selectedId, setSelectedId] = useState('399');
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const [hoveredBody, setHoveredBody] = useState<{ body: OrbitRecord; x: number; y: number } | null>(null);
+  const [hoveredBody, setHoveredBody] = useState<{ body: HoverTarget; x: number; y: number } | null>(null);
+  const [nasaImage, setNasaImage] = useState<NasaImageResult | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageUnavailable, setImageUnavailable] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [followObserver, setFollowObserver] = useState(false);
   const [showMoons, setShowMoons] = useState(true);
   const [showAsteroids, setShowAsteroids] = useState(true);
@@ -499,6 +566,30 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
       .finally(() => setLoading(false));
   }, []);
 
+  const bodies = useMemo(() => model ? [...model.planets, ...model.moons, ...model.asteroids] : [], [model]);
+  const selected = bodies.find((body) => body.id === selectedId) ?? model?.planets.find((body) => body.id === selectedId) ?? null;
+  const imageBody = useMemo<ImageBody | null>(() => selected?.type === 'planet' || selected?.type === 'moon' ? selected : selectedId === 'sun' ? { name: 'Sun', type: 'star' } : null, [selected, selectedId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setNasaImage(null);
+    setImageUnavailable(false);
+    if (!imageBody) { setImageLoading(false); return () => controller.abort(); }
+    setImageLoading(true);
+    findNasaImage(imageBody, controller.signal)
+      .then(setNasaImage)
+      .catch(() => { if (!controller.signal.aborted) setImageUnavailable(true); })
+      .finally(() => { if (!controller.signal.aborted) setImageLoading(false); });
+    return () => controller.abort();
+  }, [imageBody]);
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    syncFullscreen();
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
   useEffect(() => {
     if (!playing) { anchor.current = Date.now(); return; }
     const timer = window.setInterval(() => {
@@ -510,8 +601,6 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
     return () => window.clearInterval(timer);
   }, [playing, speed]);
 
-  const bodies = useMemo(() => model ? [...model.planets, ...model.moons, ...model.asteroids] : [], [model]);
-  const selected = bodies.find((body) => body.id === selectedId) ?? model?.planets.find((body) => body.id === selectedId) ?? null;
   const selectBody = (id: string) => { setSelectedId(id); setFocusedId(id); setFollowObserver(false); };
   const visibleBodies = useMemo(() => bodies.filter((body) => (category === 'all' || body.type === category) && body.name.toLowerCase().includes(search.trim().toLowerCase())), [bodies, category, search]);
   const modelDate = model ? new Date(new Date(model.epoch_utc).getTime() + offsetDays * 86_400_000) : new Date();
@@ -533,7 +622,7 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
     <section className="solar-system-explorer">
       <div className="solar-system-stage">
         {model && <SolarSystemCanvas model={model} offsetDays={offsetDays} anchorMs={anchor.current} playing={playing} speed={speed} selectedId={selectedId} focusedId={focusedId} onSelect={selectBody} onHover={(body, x, y) => setHoveredBody(body ? { body, x, y } : null)} followObserver={followObserver} showAsteroids={showAsteroids} showMoons={showMoons} />}
-        {hoveredBody && <div className="solar-hover-label" style={{ left: hoveredBody.x, top: hoveredBody.y }}><strong>{hoveredBody.body.name}</strong><span>{hoveredBody.body.type === 'moon' ? `Moon of ${hoveredBody.body.parent_name}` : hoveredBody.body.type === 'asteroid' ? 'Main-belt asteroid' : 'Planet'}</span><small>Click to focus</small></div>}
+        {hoveredBody && <div className="solar-hover-label" style={{ left: hoveredBody.x, top: hoveredBody.y }}><strong>{hoveredBody.body.name}</strong><span>{hoveredBody.body.type === 'moon' ? `Moon of ${hoveredBody.body.parent_name}` : hoveredBody.body.type === 'asteroid' ? 'Main-belt asteroid' : hoveredBody.body.type}</span><small>Click to focus</small></div>}
         {(loading || error) && <div className={`solar-system-state${error ? ' error' : ''}`}>{error ? <><AlertCircle size={18} />{error}</> : 'Loading the current solar-system map…'}</div>}
 
         <header className="solar-map-toolbar">
@@ -544,7 +633,7 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
             <label>Speed<select value={speed} onChange={(event) => { const time = Date.now(); if (playing) setOffsetDays((days) => days + (time - anchor.current) / 1000 * speed); anchor.current = time; setSpeed(Number(event.target.value)); }}><option value={1 / 24}>1 hour / sec</option><option value={1}>1 day / sec</option><option value={7}>7 days / sec</option><option value={30}>30 days / sec</option></select></label>
             <button type="button" onClick={() => { setOffsetDays(0); setPlaying(true); anchor.current = Date.now(); }}><RotateCcw size={14} /> Epoch</button>
             <button type="button" onClick={now}><Clock3 size={14} /> Now</button>
-            <button type="button" onClick={fullscreen}>{document.fullscreenElement ? <Minimize2 size={14} /> : <Maximize2 size={14} />}{document.fullscreenElement ? 'Exit' : 'Full screen'}</button>
+            <button type="button" onClick={fullscreen} aria-label={isFullscreen ? 'Exit full screen' : 'View Solar System full screen'} title="Expand the map and its controls to fill the screen">{isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}{isFullscreen ? 'Exit screen' : 'Full screen'}</button>
             <button type="button" onClick={() => { setFocusedId(null); setFollowObserver(false); setHoveredBody(null); }}><RotateCcw size={14} /> Overview</button>
             <button type="button" className={followObserver ? 'active' : ''} onClick={() => setFollowObserver((value) => !value)}><Telescope size={14} /> {followObserver ? 'Following SPHEREx' : 'Follow SPHEREx'}</button>
             <label className="solar-toggle"><input type="checkbox" checked={showMoons} onChange={(event) => setShowMoons(event.target.checked)} /> Moons</label>
@@ -557,8 +646,8 @@ export default function SolarSystemExplorer({ onMapMode }: { onMapMode: (mode: '
           <div className="solar-category-tabs">{(['planet', 'moon', 'asteroid', 'all'] as const).map((value) => <button key={value} className={category === value ? 'active' : ''} type="button" onClick={() => setCategory(value)}>{value === 'all' ? 'All' : `${value[0].toUpperCase()}${value.slice(1)}s`}</button>)}</div>
           <label className="solar-body-search"><Search size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search mapped objects" /></label>
           <SolarBodyList bodies={visibleBodies} selectedId={selectedId} onSelect={selectBody} />
-          {selected && <div className="solar-selected-body"><span className={`solar-type-pill ${selected.type}`}>{selected.type}</span><h3>{selected.name}</h3><dl><div><dt>Orbit</dt><dd>{selected.type === 'moon' ? `${(selected.a_au * AU_KM).toLocaleString(undefined, { maximumFractionDigits: 0 })} km` : `${selected.a_au.toFixed(3)} AU`}</dd></div><div><dt>Period</dt><dd>{selected.period_days ? selected.period_days > 365 ? `${(selected.period_days / 365.25).toFixed(2)} years` : `${selected.period_days.toFixed(2)} days` : '—'}</dd></div><div><dt>Spin</dt><dd>{selected.rotation_hours ? `${Math.abs(selected.rotation_hours).toFixed(1)} h${selected.rotation_hours < 0 ? ' · retrograde' : ''}` : 'Not cataloged'}</dd></div><div><dt>Inclination</dt><dd>{selected.inclination_deg.toFixed(2)}°</dd></div></dl><button type="button" className="solar-focus-button" onClick={() => selectBody(selected.id)}>Focus on {selected.name}</button></div>}
-          {!selected && selectedId === 'sun' && <div className="solar-selected-body"><span className="solar-type-pill">Star</span><h3>Sun</h3><p>Central star of the Solar System. Select a planet, moon, or asteroid to inspect its orbit and rotation.</p><button type="button" className="solar-focus-button" onClick={() => selectBody('sun')}>Focus on the Sun</button></div>}
+          {selected && <div className="solar-selected-body"><span className={`solar-type-pill ${selected.type}`}>{selected.type}</span><h3>{selected.name}</h3>{(selected.type === 'planet' || selected.type === 'moon') && <NasaImageCard image={nasaImage} loading={imageLoading} unavailable={imageUnavailable} name={selected.name} />}<dl><div><dt>Orbit</dt><dd>{selected.type === 'moon' ? `${(selected.a_au * AU_KM).toLocaleString(undefined, { maximumFractionDigits: 0 })} km` : `${selected.a_au.toFixed(3)} AU`}</dd></div><div><dt>Period</dt><dd>{selected.period_days ? selected.period_days > 365 ? `${(selected.period_days / 365.25).toFixed(2)} years` : `${selected.period_days.toFixed(2)} days` : '—'}</dd></div><div><dt>Spin</dt><dd>{selected.rotation_hours ? `${Math.abs(selected.rotation_hours).toFixed(1)} h${selected.rotation_hours < 0 ? ' · retrograde' : ''}` : 'Not cataloged'}</dd></div><div><dt>Inclination</dt><dd>{selected.inclination_deg.toFixed(2)}°</dd></div></dl><button type="button" className="solar-focus-button" onClick={() => selectBody(selected.id)}>Focus on {selected.name}</button></div>}
+          {!selected && selectedId === 'sun' && <div className="solar-selected-body"><span className="solar-type-pill">Star</span><h3>Sun</h3><NasaImageCard image={nasaImage} loading={imageLoading} unavailable={imageUnavailable} name="Sun" /><p>Central star of the Solar System. Select a planet, moon, or asteroid to inspect its orbit and rotation.</p><button type="button" className="solar-focus-button" onClick={() => selectBody('sun')}>Focus on the Sun</button></div>}
           {!selected && selectedId === 'spherex' && <div className="solar-selected-body"><span className="solar-type-pill">Observer</span><h3>SPHEREx</h3><p>Illustrative spacecraft marker following its nominal Earth orbit. The displayed orbital phase is not live telemetry.</p><button type="button" className="solar-focus-button" onClick={() => { setFollowObserver(true); setFocusedId('spherex'); }}>Follow SPHEREx</button></div>}
         </aside>
 
