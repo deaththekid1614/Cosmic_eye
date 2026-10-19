@@ -5,6 +5,7 @@ from app.services.archive_service import fetch_normalized_observations, fetch_wa
 from app.services.preview_service import generate_preview, generate_rgb_preview
 from app.services.featured_service import get_featured_targets
 from app.services.ai_service import resolve_target, get_random_coordinate
+from app.services.solar_system_model_service import get_solar_system_model
 from app.utils.limits import validate_coordinates, validate_pagination
 from app.config import settings
 from typing import List
@@ -39,6 +40,10 @@ def ai_search(q: str = Query(...)):
         raise HTTPException(status_code=404, detail="Database could not find object.")
     validate_coordinates(target["ra"], target["dec"], target["search_radius"])
     return target
+
+@router.get("/solar-system-model")
+def solar_system_model():
+    return get_solar_system_model()
 
 @router.get("/random")
 def random_coord():

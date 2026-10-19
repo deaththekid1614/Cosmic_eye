@@ -23,12 +23,14 @@ Frontend entry and routing are in `frontend/src/main.tsx` and `frontend/src/App.
 | `/explore` | Manual coordinate/archive search, with optional object-name resolution and observation detail viewing. Search results can be passed to Color Lab. |
 | `/browse` | Loads recent observations automatically, sorted newest first, with a refresh action. It queries the fixed sample field RA `304.69°`, Dec `42.44°`, radius `0.5°`, page size `20`; it is not a mission-wide latest-observation feed. |
 | `/popular-regions` | Shows only the curated popular-region cards. Selecting a region loads its archive observations and previews. |
-| `/skymap` | Interactive Three.js celestial sphere with drag rotation, scroll zoom, optional RA/Dec grid and constellation outlines, target filters/search, and target selection. It supports browser full-screen mode and automatically rotates when not being dragged. Galaxy targets use spiral symbols; other object classes use colored markers. The selected target can open Manual Search. User-added targets are saved in browser local storage after archive coverage is confirmed. |
+| `/skymap` | Includes the interactive Three.js deep-sky sphere and a Solar System simulator. The latter uses current JPL Horizons elements for planets/major moons and a 450-object main-belt sample from JPL SBDB. It animates orbital motion and planet/moon rotation, has time controls, target search, drag/zoom, and full-screen mode. SPHEREx is shown in its nominal Earth orbit with illustrative orbital phase. |
 | `/rgb` | Color Lab: fetches the available band groups for entered coordinates; supports five palettes, selecting individual bands, and choosing a scan from the observation queue. Only one band image is shown at a time. |
 | `/learn` | Short infrared explainer with an interactive illustrative signal graphic. This graphic is not an archive image. |
 | `/wavelengths` | Redirects to `/rgb`. Wavelength selection and queues are part of Color Lab; the backend wavelength endpoint remains active. |
 
-The built-in Sky Map target response combines 15 curated targets with 102 records from `backend/app/catalogs/messier_targets.json` (117 built-in targets at the current catalog revision). `frontend/src/catalogs/hipparcos_bright_stars.json` contains 4,992 bright-star coordinate records used as the map backdrop. A deterministic procedural star band is positioned along the galactic plane using a Galactic-to-equatorial coordinate transform. Its points are illustrative and are not archive pixels or a measured Milky Way image. Galaxy spiral markers are also symbolic icons, not object-specific morphology. The target catalog is curated; it does not mean every SPHEREx observation or every known astronomical object is plotted.
+The built-in deep-sky target response combines 15 curated targets with 102 records from `backend/app/catalogs/messier_targets.json` (117 built-in targets at the current catalog revision). `frontend/src/catalogs/hipparcos_bright_stars.json` contains 4,992 bright-star coordinate records used as the map backdrop. A deterministic procedural star band is positioned along the galactic plane using a Galactic-to-equatorial coordinate transform. Its points are illustrative and are not archive pixels or a measured Milky Way image. Galaxy spiral markers are also symbolic icons, not object-specific morphology. The target catalog is curated; it does not mean every SPHEREx observation or every known astronomical object is plotted.
+
+The Solar System view obtains osculating orbital elements from JPL Horizons and main-belt orbital/physical data from the JPL Small-Body Database. The backend caches this response for 30 minutes. In-browser two-body Kepler propagation advances the positions and known spin periods animate planet/moon rotation. The display uses logarithmic heliocentric distance, enlarged bodies and moon orbits, and stylized procedural surface detail. SPHEREx is drawn on the published nominal low-Earth orbit; its phase is not spacecraft telemetry. This is an educational visualization, not a precision ephemeris or a collection of SPHEREx planetary photographs.
 
 ## User-facing data flow
 
@@ -48,6 +50,7 @@ FastAPI routes are mounted under `/api/v1`. The endpoint definitions are in `bac
 | `GET /observations` | Query SPHEREx image products by RA/Dec, optional radius and collection, and pagination. Defaults: radius `0.01°`, collection `spherex_qr2`, page `1`, page size `10`. Maximum radius is `1°`; maximum page size is `50`. |
 | `GET /observations/wavelengths` | Returns available unique bands and grouped multi-band observation sets. Used by Color Lab. |
 | `GET /observations/featured` | Returns the built-in featured/covered target list. |
+| `GET /observations/solar-system-model` | Returns cached planet and major-moon elements, the main-belt asteroid sample, data epoch and nominal SPHEREx orbit parameters. |
 | `GET /observations/ai-search?q=…` | Resolves a target name and returns its coordinate, matched name and, where provided, search note/radius. |
 | `GET /observations/random` | Returns a randomly sampled sky direction. |
 | `GET /observations/preview?url=…&palette=…` | Returns a generated/cached single-band JPEG. Allowed source URLs must use the IRSA host. Supported palettes: `inferno`, `magma`, `plasma`, `viridis`, and `cividis`. |
@@ -98,6 +101,7 @@ To run configured checks, provision `backend/.venv` and install frontend depende
 - Bands returned for a search can belong to overlapping scans. A band list or queue is not a calibrated spectrum or guaranteed matched observation set.
 - Wavelength descriptions in `backend/app/services/ml_service.py` are fixed wavelength-range labels. They do not classify image contents, identify objects, or claim a detection.
 - Sky Map geometry shows direction only. It does not encode distance, physical scale, or a physical model of object placement. Its Milky Way star band is a procedural guide to the galactic plane, and galaxy spiral symbols only identify the target class.
+- Solar System geometry is a display model with logarithmic distance scaling and enlarged bodies/moon orbits. JPL supplies the epoch elements and catalog; browser animation uses a two-body Kepler approximation. It is not an integrated n-body simulation, and SPHEREx's displayed orbit phase is illustrative rather than live telemetry.
 - Featured images on Home can use external decorative imagery. Popular Region cards request actual SPHEREx archive preview products separately.
 - The app does not claim to detect Planet X or confirm transient discoveries. Interpret observations through the archive product, its metadata, calibration, and applicable scientific documentation.
 
@@ -119,10 +123,12 @@ backend/app/services/archive_service.py       Observation normalization and band
 backend/app/services/ai_service.py            SIMBAD name resolution and random coordinates
 backend/app/services/preview_service.py       FITS preview and RGB rendering/cache
 backend/app/services/featured_service.py      Featured target catalog response
+backend/app/services/solar_system_model_service.py  JPL Horizons and SBDB model feed/cache
 backend/app/catalogs/messier_targets.json     Bundled Messier target records
 frontend/src/App.tsx                          Frontend routes
 frontend/src/routes/                          Routed pages
 frontend/src/components/SkyMapGlobe.tsx       Three.js celestial view
+frontend/src/components/SolarSystemExplorer.tsx  Animated Solar System visualization
 frontend/src/components/PopularRegionCard.tsx Archive-backed region previews
 frontend/src/catalogs/hipparcos_bright_stars.json  Sky Map backdrop coordinates
 frontend/src/api/                             Typed frontend API wrappers

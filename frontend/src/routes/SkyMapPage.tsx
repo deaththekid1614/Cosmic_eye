@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowUpRight, Check, Globe2, Loader2, Maximize2, Minimize2, Rotate3D, RotateCcw, Satellite, Search, Sparkles, X } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, Check, CircleDot, Globe2, Layers, Loader2, Maximize2, Minimize2, Orbit, Rotate3D, RotateCcw, Satellite, Search, Shapes, Sparkles, Star, X } from 'lucide-react';
 import SkyMapGlobe from '../components/SkyMapGlobe';
+import SolarSystemExplorer from '../components/SolarSystemExplorer';
 import { getFeaturedTargets, searchObservations } from '../api/observations';
 import { fetchJson } from '../api/client';
 import type { FeaturedTarget } from '../types/observation';
@@ -10,6 +11,14 @@ import type { FeaturedTarget } from '../types/observation';
 type Filter = 'all' | 'nebulae' | 'galaxies' | 'stars' | 'planets' | 'other';
 const CUSTOM_TARGETS_KEY = 'cosmic-eye-skymap-custom-targets';
 const CONFIRMED_PLANET_SYSTEMS = new Set(['toi700', 'trappist1']);
+const FILTER_OPTIONS: { value: Filter; label: string; Icon: typeof Layers }[] = [
+  { value: 'all', label: 'All', Icon: Layers },
+  { value: 'nebulae', label: 'Nebulae', Icon: Sparkles },
+  { value: 'galaxies', label: 'Galaxies', Icon: Orbit },
+  { value: 'stars', label: 'Stars', Icon: Star },
+  { value: 'planets', label: 'Planets', Icon: CircleDot },
+  { value: 'other', label: 'Other', Icon: Shapes },
+];
 
 function objectKind(type: string) {
   if (/nebula|star-forming|complex|remnant/i.test(type)) return 'nebula';
@@ -33,6 +42,7 @@ export default function SkyMapPage() {
   const [targets, setTargets] = useState<FeaturedTarget[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [mapMode, setMapMode] = useState<'sky' | 'solar-system'>('sky');
   const [resetSignal, setResetSignal] = useState(0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
@@ -144,8 +154,9 @@ export default function SkyMapPage() {
   };
 
   return (
-    <div className="dashboard-wrapper skymap-page">
-      <section ref={pageRef} className={isFullscreen ? 'skymap-content is-fullscreen' : 'skymap-content'}>
+    <div className={`dashboard-wrapper skymap-page${mapMode === 'solar-system' ? ' solar-system-page' : ''}`}>
+      <section ref={pageRef} className={`skymap-content${mapMode === 'solar-system' ? ' is-solar-mode' : ''}${isFullscreen ? ' is-fullscreen' : ''}${isFullscreen && mapMode === 'solar-system' ? ' is-solar-fullscreen' : ''}`}>
+        {mapMode === 'sky' && <>
         <header className="skymap-heading">
           <div>
             <span className="eyebrow">SPHEREx · FULL SKY</span>
@@ -155,7 +166,14 @@ export default function SkyMapPage() {
           <div className="skymap-target-count"><Globe2 size={18} /><strong>{targets.length || '—'}</strong><span>mapped targets</span></div>
         </header>
 
-        <div className="skymap-layout">
+        </>}
+
+        <div className="skymap-mode-tabs" role="tablist" aria-label="Choose a sky map">
+          <button type="button" role="tab" aria-selected={mapMode === 'sky'} className={mapMode === 'sky' ? 'active' : ''} onClick={() => setMapMode('sky')}><Globe2 size={16} /> All-sky map <span>Deep-space targets</span></button>
+          <button type="button" role="tab" aria-selected={mapMode === 'solar-system'} className={mapMode === 'solar-system' ? 'active' : ''} onClick={() => setMapMode('solar-system')}><Orbit size={16} /> Solar System <span>Planets · moons · asteroids</span></button>
+        </div>
+
+        {mapMode === 'sky' ? <div className="skymap-layout">
           <div className="skymap-viewer-card">
             <div className="skymap-toolbar">
               <span className="skymap-gesture-help"><Rotate3D size={16} /> Drag to look around · Scroll to zoom · Select a target</span>
@@ -181,11 +199,11 @@ export default function SkyMapPage() {
               <span><i className="legend-dot bright-star" /> Bright Hipparcos stars</span>
               <span><i className="legend-milky-way" /> Milky Way plane</span>
               <span><i className="legend-constellation-line" /> Constellation lines</span>
-              <span><i className="legend-dot nebula" /> Nebulae</span>
-              <span><i className="legend-galaxy-icon" /> Galaxies (spiral marker)</span>
-              <span><i className="legend-dot star" /> Stars &amp; clusters</span>
-              <span><i className="legend-dot planet" /> Confirmed exoplanet systems</span>
-              <span><i className="legend-dot other" /> Other covered objects</span>
+              <span><Sparkles className="legend-category-icon nebula" size={14} /> Nebulae</span>
+              <span><Orbit className="legend-category-icon galaxy" size={14} /> Galaxies</span>
+              <span><Star className="legend-category-icon star" size={14} /> Stars &amp; clusters</span>
+              <span><CircleDot className="legend-category-icon planet" size={14} /> Confirmed exoplanet systems</span>
+              <span><Shapes className="legend-category-icon other" size={14} /> Other covered objects</span>
             </div>
             <p className="skymap-science-note">You are viewing the sky from the SPHEREx observer point. The lavender star band follows the Milky Way’s galactic plane; its points are illustrative, not SPHEREx pixels. Gold lines connect bright Hipparcos stars into familiar constellation outlines. Colored target markers have SPHEREx image coverage. RA/Dec gives direction only, not object distance or size.</p>
           </div>
@@ -197,9 +215,9 @@ export default function SkyMapPage() {
             </div>
 
             <div className="skymap-filters" role="group" aria-label="Filter sky targets">
-              {(['all', 'nebulae', 'galaxies', 'stars', 'planets', 'other'] as const).map((option) => (
-                <button key={option} type="button" className={filter === option ? 'skymap-filter active' : 'skymap-filter'} onClick={() => setFilterAndSelection(option)}>
-                  {option === 'all' ? 'All' : option === 'nebulae' ? 'Nebulae' : option === 'galaxies' ? 'Galaxies' : option === 'stars' ? 'Stars' : option === 'planets' ? 'Planets' : 'Other'}
+              {FILTER_OPTIONS.map(({ value, label, Icon }) => (
+                <button key={value} type="button" title={`Show ${label.toLowerCase()} targets`} aria-pressed={filter === value} className={filter === value ? 'skymap-filter active' : 'skymap-filter'} onClick={() => setFilterAndSelection(value)}>
+                  <Icon size={13} aria-hidden="true" />{label}
                 </button>
               ))}
             </div>
@@ -246,7 +264,7 @@ export default function SkyMapPage() {
               </div>
             )}
           </aside>
-        </div>
+        </div> : <SolarSystemExplorer onMapMode={setMapMode} />}
       </section>
     </div>
   );

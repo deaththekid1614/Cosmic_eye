@@ -107,6 +107,82 @@ function targetColor(type: string) {
   return 0x7ee7d3;
 }
 
+function targetKind(type: string) {
+  if (/nebula|star-forming|complex|remnant/i.test(type)) return 'nebula';
+  if (/planet|exoplanet/i.test(type)) return 'planet';
+  if (/moon|satellite/i.test(type)) return 'moon';
+  if (/galaxy/i.test(type)) return 'galaxy';
+  if (/star|stellar|cluster|association/i.test(type) && !/star-forming/i.test(type)) return 'star';
+  return 'other';
+}
+
+function createTargetIconTexture(kind: string) {
+  if (kind === 'galaxy') return createSpiralGalaxyTexture();
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  context.fillStyle = '#ffffff';
+  context.strokeStyle = '#ffffff';
+  context.lineWidth = 4;
+  context.lineJoin = 'round';
+  context.lineCap = 'round';
+  if (kind === 'nebula') {
+    context.shadowColor = '#ffffff';
+    context.shadowBlur = 9;
+    context.beginPath();
+    context.arc(25, 35, 12, 0, Math.PI * 2);
+    context.arc(37, 30, 13, 0, Math.PI * 2);
+    context.arc(42, 40, 9, 0, Math.PI * 2);
+    context.fill();
+  } else if (kind === 'star') {
+    context.beginPath();
+    for (let point = 0; point < 10; point += 1) {
+      const angle = -Math.PI / 2 + point * Math.PI / 5;
+      const radius = point % 2 === 0 ? 25 : 11;
+      const x = 32 + Math.cos(angle) * radius;
+      const y = 32 + Math.sin(angle) * radius;
+      if (point === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.closePath();
+    context.fill();
+  } else if (kind === 'planet') {
+    context.beginPath();
+    context.ellipse(32, 32, 28, 10, -0.35, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(32, 32, 15, 0, Math.PI * 2);
+    context.fill();
+  } else if (kind === 'moon') {
+    context.beginPath();
+    context.arc(32, 32, 23, 0, Math.PI * 2);
+    context.fill();
+    context.globalCompositeOperation = 'destination-out';
+    context.beginPath();
+    context.arc(43, 24, 20, 0, Math.PI * 2);
+    context.fill();
+  } else {
+    context.beginPath();
+    context.moveTo(32, 6);
+    context.lineTo(58, 32);
+    context.lineTo(32, 58);
+    context.lineTo(6, 32);
+    context.closePath();
+    context.fill();
+    context.globalCompositeOperation = 'destination-out';
+    context.beginPath();
+    context.arc(32, 32, 5, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function addArc(group: THREE.Group, points: THREE.Vector3[], color: number, opacity: number) {
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({
@@ -159,6 +235,8 @@ function addConstellationLabel(group: THREE.Group, name: string, positions: THRE
 export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal, showGrid, showConstellations, focusedTarget, onHover }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const markerMap = useRef(new Map<string, THREE.Object3D>());
+  const markerGroupRef = useRef<THREE.Group | null>(null);
+  const targetIconTextures = useRef(new Map<string, THREE.CanvasTexture>());
   const viewRef = useRef<{ reset: () => void; focus: (ra: number, dec: number) => void } | null>(null);
   const gridRef = useRef<THREE.Group | null>(null);
   const constellationsRef = useRef<THREE.Group | null>(null);
@@ -277,44 +355,8 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
     globe.add(constellations);
 
     const markers = new THREE.Group();
+    markerGroupRef.current = markers;
     globe.add(markers);
-    const markerGeometry = new THREE.SphereGeometry(0.24, 24, 20);
-    const markerMaterials = new Map<number, THREE.MeshBasicMaterial>();
-    const spiralTexture = createSpiralGalaxyTexture();
-    markerMap.current.clear();
-    for (const target of targets) {
-      const color = targetColor(target.type);
-      const isGalaxy = /galaxy/i.test(target.type);
-      let marker: THREE.Object3D;
-      if (isGalaxy && spiralTexture) {
-        marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: spiralTexture, color, transparent: true, depthWrite: false, depthTest: false }));
-        marker.scale.set(1.9, 1.5, 1);
-        marker.userData.baseScale = [1.9, 1.5, 1];
-      } else {
-        let material = markerMaterials.get(color);
-        if (!material) {
-          material = new THREE.MeshBasicMaterial({ color, depthWrite: false, depthTest: false });
-          markerMaterials.set(color, material);
-        }
-        marker = new THREE.Mesh(markerGeometry, material);
-        marker.userData.baseScale = [1, 1, 1];
-      }
-      marker.position.copy(skyPosition(target.ra, target.dec, SPHERE_RADIUS + 0.4));
-      marker.userData.targetId = target.id;
-      marker.renderOrder = 3;
-      markerMap.current.set(target.id, marker);
-      markers.add(marker);
-
-      if (isGalaxy) continue;
-      const halo = new THREE.Mesh(
-        new THREE.SphereGeometry(0.42, 20, 16),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.17, depthWrite: false, depthTest: false }),
-      );
-      halo.position.copy(marker.position);
-      halo.userData.targetId = target.id;
-      halo.renderOrder = 2;
-      markers.add(halo);
-    }
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -411,9 +453,11 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
     };
 
     let frame = 0;
+    let contextLost = false;
     const clock = new THREE.Clock();
     let previousTime = 0;
     const render = () => {
+      if (contextLost) return;
       const elapsed = clock.elapsedTime;
       const delta = elapsed - previousTime;
       previousTime = elapsed;
@@ -426,9 +470,27 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
         yaw += delta * 0.055;
       }
       camera.rotation.set(pitch, Math.PI + yaw, 0, 'YXZ');
-      renderer.render(scene, camera);
+      try {
+        renderer.render(scene, camera);
+      } catch {
+        host.dataset.webglUnavailable = 'true';
+        return;
+      }
       frame = window.requestAnimationFrame(render);
     };
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      contextLost = true;
+      window.cancelAnimationFrame(frame);
+      host.dataset.webglUnavailable = 'true';
+    };
+    const onContextRestored = () => {
+      contextLost = false;
+      host.dataset.webglUnavailable = 'false';
+      frame = window.requestAnimationFrame(render);
+    };
+    renderer.domElement.addEventListener('webglcontextlost', onContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', onContextRestored);
     render();
 
     return () => {
@@ -439,12 +501,14 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', onContextRestored);
       viewRef.current = null;
       gridRef.current = null;
       constellationsRef.current = null;
+      markerGroupRef.current = null;
       scene.traverse((object) => {
         if (object instanceof THREE.Sprite) {
-          object.material.map?.dispose();
           object.material.dispose();
         } else if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) {
           object.geometry.dispose();
@@ -452,11 +516,50 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
           materials.forEach((material) => material.dispose());
         }
       });
+      targetIconTextures.current.forEach((texture) => texture.dispose());
+      targetIconTextures.current.clear();
       markerMap.current.clear();
       hoverRef.current(null);
       renderer.dispose();
       renderer.domElement.remove();
     };
+  }, []);
+
+  // Rebuild only target markers when filters or live solar-system results change;
+  // keep the expensive WebGL scene and its context alive between selections.
+  useEffect(() => {
+    const markers = markerGroupRef.current;
+    if (!markers) return;
+    for (const child of markers.children) {
+      if (child instanceof THREE.Sprite) child.material.dispose();
+    }
+    markers.clear();
+    markerMap.current.clear();
+
+    for (const target of targets) {
+      const kind = targetKind(target.type);
+      let texture = targetIconTextures.current.get(kind);
+      if (!texture) {
+        texture = createTargetIconTexture(kind) ?? undefined;
+        if (texture) targetIconTextures.current.set(kind, texture);
+      }
+      if (!texture) continue;
+      const marker = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: texture,
+        color: targetColor(target.type),
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+      }));
+      const baseSize = kind === 'galaxy' ? [1.9, 1.5, 1] : [1.25, 1.25, 1];
+      marker.scale.set(baseSize[0], baseSize[1], baseSize[2]);
+      marker.userData.baseScale = baseSize;
+      marker.position.copy(skyPosition(target.ra, target.dec, SPHERE_RADIUS + 0.4));
+      marker.userData.targetId = target.id;
+      marker.renderOrder = 3;
+      markerMap.current.set(target.id, marker);
+      markers.add(marker);
+    }
   }, [targets]);
 
   useEffect(() => {
@@ -482,7 +585,7 @@ export default function SkyMapGlobe({ targets, selectedId, onSelect, resetSignal
       const [baseX, baseY, baseZ] = marker.userData.baseScale as [number, number, number];
       const scale = selected ? 1.65 : 1;
       marker.scale.set(baseX * scale, baseY * scale, baseZ * scale);
-      const material = (marker as THREE.Mesh | THREE.Sprite).material;
+      const material = (marker as THREE.Sprite).material;
       material.color.set(selected ? 0xffffff : targetColor(targets.find((target) => target.id === id)?.type ?? ''));
     }
   }, [selectedId, targets]);

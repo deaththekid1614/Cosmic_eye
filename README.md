@@ -42,7 +42,7 @@ Explore the app from a target, a coordinate, or a sky-wide view:
 | 🔎 Manual Search (`/explore`) | Searches by right ascension and declination; opens observation metadata and source links. | Results are image footprints around the searched position. Displayed RA/Dec values are the product field centers. |
 | 🗂️ Browse (`/browse`) | Loads recent archive observations, sorted newest first, and lets users refresh the results. | Queries a fixed sample sky field; it is not a mission-wide date search. |
 | ⭐ Popular Regions (`/popular-regions`) | Shows the curated collection of well-known sky regions. | Region cards request SPHEREx archive previews and open observations for the selected target. |
-| 🌌 Sky Map (`/skymap`) | Full-screen-capable interactive Three.js sky view with drag rotation, zoom, coordinate grid, constellation guides, target filters, and name search. Galaxy targets use spiral symbols; other object classes use distinct marker colors. | Displays 117 built-in target records and Hipparcos guide stars. A starry band illustrates the Milky Way’s galactic plane. User-added targets are saved in browser local storage only after SPHEREx archive coverage is found. This is a curated view, not a complete map of all observations. |
+| 🌌 Sky Map (`/skymap`) | Switch between the interactive deep-sky map and a real-time Solar System model. The solar view animates planet orbits and spin, major moons, a JPL main-belt asteroid sample, and SPHEREx in its nominal Earth orbit. It supports drag rotation, zoom, time controls, body search, and full-screen viewing. | Deep-sky targets are a curated set with SPHEREx image coverage. Solar System elements come from JPL Horizons and the Small-Body Database. Distances are compressed and object sizes/moon orbits enlarged so the system fits on screen. SPHEREx orbit phase is illustrative, not live spacecraft telemetry. |
 | 🎨 Color Lab (`/rgb`) | Changes the display palette or wavelength band for an infrared image; includes a queue of scans in the region. | Displays one band image at a time. Palettes: Inferno, Viridis, Plasma, Cividis, and Magma. |
 | 📖 Learn (`/learn`) | Explains infrared and how wavelength/palette choices affect display. | Includes an illustrative signal graphic, not observed SPHEREx data. |
 
@@ -55,6 +55,16 @@ Follow the data from a user's search to the image on screen. The backend handles
 flowchart LR
     U[User] --> UI[React and TypeScript UI]
     UI -->|HTTP /api/v1| API[FastAPI]
+
+    subgraph Solar[Interactive Solar System]
+        UI -->|Solar System view request| API
+        API --> MODEL_API[GET /observations/solar-system-model]
+        MODEL_API --> HORIZONS[JPL Horizons · planet and moon elements]
+        MODEL_API --> SBDB[JPL Small-Body Database · asteroid orbits]
+        HORIZONS --> MODEL[Cached orbital model]
+        SBDB --> MODEL
+        MODEL --> THREE[Three.js · animated scene]
+    end
 
     subgraph Resolve[Name resolution]
         API --> ALIAS[Local aliases]
@@ -107,8 +117,9 @@ Accordingly, there is no trained model accuracy score to report. The M74 cross-c
 | Archive service (`backend/app/services/archive_service.py`) | Filter calibrated image products, normalize wavelength units and timestamps, and group available bands. |
 | IRSA adapter (`backend/app/adapters/irsa_spherex.py`) | Query SPHEREx image coverage through Astroquery’s SIA interface. |
 | Name resolver (`backend/app/services/ai_service.py`) | Resolve local aliases or query SIMBAD for target coordinates. |
+| Solar System model service (`backend/app/services/solar_system_model_service.py`) | Fetch current JPL Horizons elements for planets and major moons, plus a main-belt asteroid sample from SBDB; cache the response. |
 | Preview service (`backend/app/services/preview_service.py`) | Download FITS, normalize science pixels, apply a display palette, and cache JPEG previews. |
-| External services | NASA/IPAC IRSA supplies SPHEREx products; SIMBAD resolves astronomical names. |
+| External services | NASA/IPAC IRSA supplies SPHEREx products; SIMBAD resolves astronomical names; JPL Horizons and SBDB supply Solar System model data. |
 
 Single-band previews are display renderings, not the underlying science arrays. Palette colors encode signal and do not show true visible-light colors. The optional backend RGB-preview endpoint combines three files for illustration; it does not perform WCS registration/reprojection or photometric color calibration.
 
@@ -119,6 +130,7 @@ Single-band previews are display renderings, not the underlying science arrays. 
 - IRSA results and available bands depend on the archive release and sky position. An empty result means no matching product was returned for that query; it does not mean there are no astronomical objects there.
 - The Color Lab queue groups archive records by observation ID. Bands may come from overlapping scans, and comparing them is not a calibrated spectrum.
 - The Sky Map plots catalog directions on a sphere centered at the SPHEREx observer viewpoint. Marker locations encode RA/Dec direction, not physical distance or object size. The background guide stars come from a bundled Hipparcos coordinate list. The lavender Milky Way band is a procedural, illustrative star field positioned along the galactic plane; it is not an observed image or a SPHEREx data layer. Target markers represent catalog entries with recorded SPHEREx coverage, and galaxy spirals are symbolic icons rather than depictions of each galaxy’s measured shape.
+- The Solar System view fetches current osculating orbital elements from [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) and asteroid orbital/physical catalog fields from the [JPL Small-Body Database](https://ssd-api.jpl.nasa.gov/doc/sbdb_query.html). Positions are advanced in the browser with a two-body Kepler approximation; this is an educational animation, not a precision ephemeris. It does not model mutual perturbations, spacecraft telemetry, or live SPHEREx position. Catalog spin periods set rotation rates, while initial surface orientations are illustrative. The SPHEREx marker follows a published nominal low-Earth orbit with an illustrative phase. The built-in asteroid belt is a 450-object sample, not every known asteroid. Procedural body textures are visual aids, not spacecraft photographs. The logarithmic distance mapping and enlarged bodies/moon orbits are display choices.
 - Observation wavelength labels describe the band. They do not identify the contents of an image. Do not interpret UI labels as scientific classifications or detections.
 - Archive files and externally hosted imagery retain their own source terms and attribution requirements. The repository’s MIT license does not relicense them.
 
@@ -144,7 +156,7 @@ On 2026-10-18, we cross-checked the M74 search shown in the app against SIMBAD a
 | --- | --- | --- |
 | Frontend | React 18, TypeScript 5.6, Vite 6 | Builds the browser interface and development server. |
 | Routing and UI | React Router 6, Lucide React, `react-zoom-pan-pinch` | Page navigation, icons, and image zoom/pan controls. |
-| 3D visualization | Three.js | Renders the interactive celestial sphere in Sky Map. |
+| 3D visualization | Three.js | Renders the celestial sphere and animated Solar System view. |
 | Backend API | Python 3.11, FastAPI, Uvicorn, Pydantic 2, pydantic-settings | Serves and validates the `/api/v1` endpoints and application settings. |
 | Astronomy/archive access | Astroquery, PyVO, Astropy, NASA/IPAC IRSA, SIMBAD | Resolves target names and queries SPHEREx archive products and metadata. |
 | FITS image processing | Astropy, NumPy, Matplotlib, Pillow | Reads FITS data, scales pixel values, applies display palettes, and writes JPEG previews. |
@@ -200,6 +212,7 @@ All routes are under `/api/v1`:
 | `GET` | `/observations?ra=…&dec=…` | Search calibrated SPHEREx image products near a coordinate. Optional parameters: `radius` (default `0.01°`, maximum `1°`), `collection` (default `spherex_qr2`), `page` (default `1`), and `page_size` (default `10`, maximum `50`). |
 | `GET` | `/observations/wavelengths?ra=…&dec=…` | Return available wavelength records and multi-band observation groups. Used by Color Lab. |
 | `GET` | `/observations/featured` | Return the built-in featured target catalog. |
+| `GET` | `/observations/solar-system-model` | Return cached current JPL Horizons planet/moon elements, a JPL SBDB main-belt asteroid sample, and nominal SPHEREx orbit parameters for the Solar System view. |
 | `GET` | `/observations/ai-search?q=…` | Resolve an object name and return its coordinates. |
 | `GET` | `/observations/random` | Return a random sky coordinate. |
 | `GET` | `/observations/preview?url=…&palette=…` | Return a cached or newly generated single-band JPEG preview. |
